@@ -48,7 +48,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Center: Search Bar (Desktop & Tablet) with glassmorphism */}
+          {/* Center: Search Bar (Desktop & Tablet) */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full group">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 group-focus-within:text-primary transition-colors" />
@@ -63,8 +63,11 @@ export default function Navbar() {
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Theme Toggle */}
-            <ThemeToggle />
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
 
+            {/* Search Icon (Mobile) */}
             <Button
               variant="ghost"
               size="icon"
@@ -76,7 +79,8 @@ export default function Navbar() {
 
             {isLoggedIn ? (
               <>
-                <Link href="/messages" className="hidden sm:block">
+                {/* Messages - ALWAYS VISIBLE on mobile and desktop */}
+                <Link href="/messages">
                   <Button variant="ghost" size="icon" className="relative hover:bg-muted/80 group">
                     <MessageCircle className="h-5 w-5 group-hover:text-primary transition-colors" />
                     <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-blue-600 to-purple-600 border-0 animate-pulse">
@@ -88,6 +92,7 @@ export default function Navbar() {
                 {/* Notification Panel */}
                 <NotificationPanel />
 
+                {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-primary/50 transition-all">
@@ -162,7 +167,7 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* Mobile Navigation Menu with glass effect */}
+      {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t glass backdrop-blur-xl bg-background/95 animate-in slide-in-from-top">
           <div className="container mx-auto px-4 py-4 space-y-2">
@@ -172,13 +177,13 @@ export default function Navbar() {
                 Home
               </Button>
             </Link>
-            <Link href="/messages" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start hover:bg-muted/80">
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Messages
-                <Badge className="ml-auto bg-gradient-to-r from-blue-600 to-purple-600 border-0">3</Badge>
-              </Button>
-            </Link>
+            
+            {/* Theme Toggle in Mobile Menu */}
+            <div className="flex items-center justify-between px-3 py-2">
+              <span className="text-sm font-medium">Theme</span>
+              <ThemeToggle />
+            </div>
+            
             {!isLoggedIn && (
               <>
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
