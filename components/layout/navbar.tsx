@@ -27,7 +27,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm">
+      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-xl shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Left: Logo + Menu Button (Mobile) */}
@@ -35,13 +35,13 @@ export default function Navbar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden hover:bg-muted/80"
+                className="lg:hidden hover:bg-muted/80 relative z-[70]"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
 
-              <Link href="/feed" className="flex items-center group">
+              <Link href="/feed" className="flex items-center group" onClick={() => setMobileMenuOpen(false)}>
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
                   <h1 className="relative text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
@@ -171,10 +171,16 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Enhanced Mobile Navigation Menu - SEPARATE COMPONENT */}
+      {/* Enhanced Mobile Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[60] bg-background/95 backdrop-blur-lg pt-16">
-          <div className="h-full overflow-y-auto pb-20">
+        <div 
+          className="lg:hidden fixed inset-0 z-[60] bg-background animate-in fade-in slide-in-from-top duration-200"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div 
+            className="h-full overflow-y-auto pt-16 pb-20"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="container mx-auto px-4 py-6 space-y-6">
               {/* Main Navigation */}
               <div className="space-y-2">
@@ -259,18 +265,27 @@ export default function Navbar() {
                     Settings
                   </Button>
                 </Link>
-
-                <div className="flex items-center justify-between px-3 py-3 bg-muted/50 rounded-lg">
-                  <span className="text-sm font-medium">Theme</span>
-                  <ThemeToggle />
+                
+                {/* Theme Toggle with Higher Z-index */}
+                <div className="px-3 py-3 bg-muted/50 rounded-lg relative z-[70]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Theme</span>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <ThemeToggle />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <Separator />
-
+              
               {/* Logout */}
               {isLoggedIn ? (
-                <Button variant="ghost" className="w-full justify-start text-base h-12 text-destructive hover:bg-destructive/10">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-base h-12 text-destructive hover:bg-destructive/10"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   <LogOut className="mr-3 h-5 w-5" />
                   Log Out
                 </Button>
