@@ -1,5 +1,4 @@
 'use client'
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,28 +24,31 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-          <TabsTrigger value="profile">
-            <User className="h-4 w-4 mr-2 hidden sm:inline" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="account">
-            <Lock className="h-4 w-4 mr-2 hidden sm:inline" />
-            Account
-          </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2 hidden sm:inline" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="billing">
-            <CreditCard className="h-4 w-4 mr-2 hidden sm:inline" />
-            Billing
-          </TabsTrigger>
-          <TabsTrigger value="privacy">
-            <Shield className="h-4 w-4 mr-2 hidden sm:inline" />
-            Privacy
-          </TabsTrigger>
-        </TabsList>
+        {/* Scrollable TabsList for Mobile */}
+        <div className="overflow-x-auto pb-2 -mx-4 px-4">
+          <TabsList className="inline-flex w-auto min-w-full">
+            <TabsTrigger value="profile" className="whitespace-nowrap">
+              <User className="h-4 w-4 mr-2 hidden sm:inline" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="account" className="whitespace-nowrap">
+              <Lock className="h-4 w-4 mr-2 hidden sm:inline" />
+              Account
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="whitespace-nowrap">
+              <Bell className="h-4 w-4 mr-2 hidden sm:inline" />
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="whitespace-nowrap">
+              <CreditCard className="h-4 w-4 mr-2 hidden sm:inline" />
+              Billing
+            </TabsTrigger>
+            <TabsTrigger value="privacy" className="whitespace-nowrap">
+              <Shield className="h-4 w-4 mr-2 hidden sm:inline" />
+              Privacy
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4">
@@ -57,12 +59,12 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Avatar */}
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" />
                   <AvatarFallback>JD</AvatarFallback>
                 </Avatar>
-                <div className="space-y-2">
+                <div className="flex-1 text-center sm:text-left space-y-2">
                   <Button variant="outline" size="sm">
                     <Upload className="h-4 w-4 mr-2" />
                     Change Avatar
@@ -219,43 +221,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>New Subscribers</Label>
-                  <p className="text-sm text-muted-foreground">
-                    When someone subscribes to your content
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Comments</Label>
-                  <p className="text-sm text-muted-foreground">
-                    When someone comments on your posts
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Likes</Label>
-                  <p className="text-sm text-muted-foreground">
-                    When someone likes your content
-                  </p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Billing Tab */}
@@ -280,33 +245,6 @@ export default function SettingsPage() {
                 <CreditCard className="h-4 w-4 mr-2" />
                 Add Payment Method
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription History</CardTitle>
-              <CardDescription>View your past subscription payments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { date: 'Dec 1, 2024', amount: '$9.99', status: 'Paid' },
-                  { date: 'Nov 1, 2024', amount: '$9.99', status: 'Paid' },
-                  { date: 'Oct 1, 2024', amount: '$9.99', status: 'Paid' },
-                ].map((payment, i) => (
-                  <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
-                    <div>
-                      <p className="font-medium">{payment.date}</p>
-                      <p className="text-sm text-muted-foreground">Subscription payment</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{payment.amount}</p>
-                      <p className="text-sm text-green-600">{payment.status}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -338,26 +276,6 @@ export default function SettingsPage() {
                 </div>
                 <Switch defaultChecked />
               </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Allow Messages from Non-Subscribers</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Let anyone send you messages
-                  </p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Blocked Users</CardTitle>
-              <CardDescription>Manage users you've blocked</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">You haven't blocked anyone yet.</p>
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MessageCircle, Search, Menu, X, Home, User, Settings, LogOut } from 'lucide-react'
+import { MessageCircle, Search, Menu, X, Home, User, Settings, LogOut, Compass, Bookmark, Heart, Upload, DollarSign, Users, BarChart3 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import NotificationPanel from '@/components/layout/notification-panel'
+import { Separator } from '@/components/ui/separator'
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(true)
@@ -79,7 +80,7 @@ export default function Navbar() {
 
             {isLoggedIn ? (
               <>
-                {/* Messages - ALWAYS VISIBLE on mobile and desktop */}
+                {/* Messages - ALWAYS VISIBLE */}
                 <Link href="/messages">
                   <Button variant="ghost" size="icon" className="relative hover:bg-muted/80 group">
                     <MessageCircle className="h-5 w-5 group-hover:text-primary transition-colors" />
@@ -167,37 +168,124 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* Enhanced Mobile Navigation Menu - FULL SCREEN */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t glass backdrop-blur-xl bg-background/95 animate-in slide-in-from-top">
-          <div className="container mx-auto px-4 py-4 space-y-2">
-            <Link href="/feed" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start hover:bg-muted/80">
-                <Home className="mr-2 h-4 w-4" />
-                Home
-              </Button>
-            </Link>
-            
-            {/* Theme Toggle in Mobile Menu */}
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-sm font-medium">Theme</span>
-              <ThemeToggle />
+        <div className="lg:hidden fixed inset-0 top-16 z-50 bg-background animate-in slide-in-from-top">
+          <div className="h-full overflow-y-auto">
+            <div className="container mx-auto px-4 py-6 space-y-6">
+              {/* Main Navigation */}
+              <div className="space-y-2">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  Main Menu
+                </p>
+                <Link href="/feed" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Home className="mr-3 h-5 w-5" />
+                    Home
+                  </Button>
+                </Link>
+                <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Compass className="mr-3 h-5 w-5" />
+                    Explore
+                  </Button>
+                </Link>
+                <Link href="/subscriptions" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Heart className="mr-3 h-5 w-5" />
+                    Subscriptions
+                  </Button>
+                </Link>
+                <Link href="/saved" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Bookmark className="mr-3 h-5 w-5" />
+                    Saved
+                  </Button>
+                </Link>
+              </div>
+
+              <Separator />
+
+              {/* Creator Studio */}
+              <div className="space-y-2">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  Creator Studio
+                </p>
+                <Link href="/creator/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <BarChart3 className="mr-3 h-5 w-5" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Link href="/creator/upload" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Upload className="mr-3 h-5 w-5" />
+                    Upload Content
+                  </Button>
+                </Link>
+                <Link href="/creator/earnings" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <DollarSign className="mr-3 h-5 w-5" />
+                    Earnings
+                  </Button>
+                </Link>
+                <Link href="/creator/subscribers" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Users className="mr-3 h-5 w-5" />
+                    Subscribers
+                  </Button>
+                </Link>
+              </div>
+
+              <Separator />
+
+              {/* Account Settings */}
+              <div className="space-y-2">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  Account
+                </p>
+                <Link href="/janedoe" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <User className="mr-3 h-5 w-5" />
+                    My Profile
+                  </Button>
+                </Link>
+                <Link href="/settings" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                    <Settings className="mr-3 h-5 w-5" />
+                    Settings
+                  </Button>
+                </Link>
+
+                <div className="flex items-center justify-between px-3 py-3 bg-muted/50 rounded-lg">
+                  <span className="text-sm font-medium">Theme</span>
+                  <ThemeToggle />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Logout */}
+              {isLoggedIn ? (
+                <Button variant="ghost" className="w-full justify-start text-base h-12 text-destructive hover:bg-destructive/10">
+                  <LogOut className="mr-3 h-5 w-5" />
+                  Log Out
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full h-12">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
-            
-            {!isLoggedIn && (
-              <>
-                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start hover:bg-muted/80">
-                    Login
-                  </Button>
-                </Link>
-                <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
-                    Sign Up
-                  </Button>
-                </Link>
-              </>
-            )}
           </div>
         </div>
       )}

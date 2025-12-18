@@ -1,8 +1,7 @@
 'use client'
-
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Compass, PlusSquare, Heart, User } from 'lucide-react'
+import { Home, Compass, PlusSquare, Bookmark, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function MobileNav() {
@@ -12,7 +11,7 @@ export default function MobileNav() {
     { icon: Home, label: 'Home', href: '/feed' },
     { icon: Compass, label: 'Explore', href: '/explore' },
     { icon: PlusSquare, label: 'Create', href: '/creator/upload' },
-    { icon: Heart, label: 'Activity', href: '/subscriptions' },
+    { icon: Bookmark, label: 'Saved', href: '/saved' },
     { icon: User, label: 'Profile', href: '/janedoe' },
   ]
 
@@ -33,7 +32,7 @@ export default function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200",
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 min-w-[60px]",
                 isActive 
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
