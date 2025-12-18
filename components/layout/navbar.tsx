@@ -2,8 +2,9 @@
 'use client'
 
 import Link from 'next/link'
-import { MessageCircle, Search, Menu, X, Home, User, Settings, LogOut, Compass, Bookmark, Heart, Upload, DollarSign, Users, BarChart3 } from 'lucide-react'
+import { MessageCircle, Search, Menu, X, Home, User, Settings, LogOut, Compass, Bookmark, Heart, Upload, DollarSign, Users, BarChart3, Sun, Moon, Monitor } from 'lucide-react'
 import { useState } from 'react'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -24,10 +25,11 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-xl shadow-sm">
+      <nav className="sticky top-0 z-50 w-full border-b bg-background backdrop-blur-xl shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Left: Logo + Menu Button (Mobile) */}
@@ -35,13 +37,13 @@ export default function Navbar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden hover:bg-muted/80 relative z-[70]"
+                className="lg:hidden hover:bg-muted/80"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {mobileMenuOpen ? <X className="h-6 w-6 text-foreground" /> : <Menu className="h-6 w-6 text-foreground" />}
               </Button>
 
-              <Link href="/feed" className="flex items-center group" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/feed" className="flex items-center group">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
                   <h1 className="relative text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-gradient">
@@ -171,141 +173,181 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Enhanced Mobile Navigation Menu */}
+      {/* Enhanced Mobile Navigation Menu - PORTAL STYLE */}
       {mobileMenuOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 z-[60] bg-background animate-in fade-in slide-in-from-top duration-200"
-          onClick={() => setMobileMenuOpen(false)}
-        >
+        <>
+          {/* Backdrop */}
           <div 
-            className="h-full overflow-y-auto pt-16 pb-20"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="container mx-auto px-4 py-6 space-y-6">
-              {/* Main Navigation */}
-              <div className="space-y-2">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Main Menu
-                </p>
-                <Link href="/feed" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Home className="mr-3 h-5 w-5" />
-                    Home
-                  </Button>
-                </Link>
-                <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Compass className="mr-3 h-5 w-5" />
-                    Explore
-                  </Button>
-                </Link>
-                <Link href="/subscriptions" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Heart className="mr-3 h-5 w-5" />
-                    Subscriptions
-                  </Button>
-                </Link>
-                <Link href="/saved" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Bookmark className="mr-3 h-5 w-5" />
-                    Saved
-                  </Button>
-                </Link>
-              </div>
+            className="lg:hidden fixed inset-0 bg-black/50 z-[100] animate-in fade-in duration-200"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          
+          {/* Menu Panel */}
+          <div className="lg:hidden fixed inset-y-0 left-0 right-0 bg-background z-[101] animate-in slide-in-from-left duration-300">
+            {/* Header with Close Button */}
+            <div className="flex items-center justify-between px-4 h-16 border-b bg-muted/30">
+              <h2 className="text-lg font-bold">Menu</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(false)}
+                className="hover:bg-muted"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
 
-              <Separator />
-
-              {/* Creator Studio */}
-              <div className="space-y-2">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Creator Studio
-                </p>
-                <Link href="/creator/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <BarChart3 className="mr-3 h-5 w-5" />
-                    Dashboard
-                  </Button>
-                </Link>
-                <Link href="/creator/upload" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Upload className="mr-3 h-5 w-5" />
-                    Upload Content
-                  </Button>
-                </Link>
-                <Link href="/creator/earnings" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <DollarSign className="mr-3 h-5 w-5" />
-                    Earnings
-                  </Button>
-                </Link>
-                <Link href="/creator/subscribers" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Users className="mr-3 h-5 w-5" />
-                    Subscribers
-                  </Button>
-                </Link>
-              </div>
-
-              <Separator />
-
-              {/* Account Settings */}
-              <div className="space-y-2">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Account
-                </p>
-                <Link href="/janedoe" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <User className="mr-3 h-5 w-5" />
-                    My Profile
-                  </Button>
-                </Link>
-                <Link href="/settings" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
-                    <Settings className="mr-3 h-5 w-5" />
-                    Settings
-                  </Button>
-                </Link>
-                
-                {/* Theme Toggle with Higher Z-index */}
-                <div className="px-3 py-3 bg-muted/50 rounded-lg relative z-[70]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Theme</span>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <ThemeToggle />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-              
-              {/* Logout */}
-              {isLoggedIn ? (
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-base h-12 text-destructive hover:bg-destructive/10"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  Log Out
-                </Button>
-              ) : (
+            {/* Scrollable Content */}
+            <div className="h-[calc(100vh-4rem)] overflow-y-auto pb-20">
+              <div className="px-4 py-6 space-y-6">
+                {/* Main Navigation */}
                 <div className="space-y-2">
-                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full h-12">
-                      Login
+                  <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Main Menu
+                  </p>
+                  <Link href="/feed" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Home className="mr-3 h-5 w-5" />
+                      Home
                     </Button>
                   </Link>
-                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600">
-                      Sign Up
+                  <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Compass className="mr-3 h-5 w-5" />
+                      Explore
+                    </Button>
+                  </Link>
+                  <Link href="/subscriptions" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Heart className="mr-3 h-5 w-5" />
+                      Subscriptions
+                    </Button>
+                  </Link>
+                  <Link href="/saved" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Bookmark className="mr-3 h-5 w-5" />
+                      Saved
                     </Button>
                   </Link>
                 </div>
-              )}
+
+                <Separator />
+
+                {/* Creator Studio */}
+                <div className="space-y-2">
+                  <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Creator Studio
+                  </p>
+                  <Link href="/creator/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <BarChart3 className="mr-3 h-5 w-5" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link href="/creator/upload" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Upload className="mr-3 h-5 w-5" />
+                      Upload Content
+                    </Button>
+                  </Link>
+                  <Link href="/creator/earnings" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <DollarSign className="mr-3 h-5 w-5" />
+                      Earnings
+                    </Button>
+                  </Link>
+                  <Link href="/creator/subscribers" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Users className="mr-3 h-5 w-5" />
+                      Subscribers
+                    </Button>
+                  </Link>
+                </div>
+
+                <Separator />
+
+                {/* Account Settings */}
+                <div className="space-y-2">
+                  <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Account
+                  </p>
+                  <Link href="/janedoe" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <User className="mr-3 h-5 w-5" />
+                      My Profile
+                    </Button>
+                  </Link>
+                  <Link href="/settings" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Settings className="mr-3 h-5 w-5" />
+                      Settings
+                    </Button>
+                  </Link>
+                </div>
+
+                <Separator />
+
+                {/* Theme Selection - BUTTONS INSTEAD OF DROPDOWN */}
+                <div className="space-y-2">
+                  <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Theme
+                  </p>
+                  <Button
+                    variant={theme === 'light' ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-base h-12"
+                    onClick={() => setTheme('light')}
+                  >
+                    <Sun className="mr-3 h-5 w-5" />
+                    Light
+                  </Button>
+                  <Button
+                    variant={theme === 'dark' ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-base h-12"
+                    onClick={() => setTheme('dark')}
+                  >
+                    <Moon className="mr-3 h-5 w-5" />
+                    Dark
+                  </Button>
+                  <Button
+                    variant={theme === 'system' ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-base h-12"
+                    onClick={() => setTheme('system')}
+                  >
+                    <Monitor className="mr-3 h-5 w-5" />
+                    System
+                  </Button>
+                </div>
+
+                <Separator />
+                
+                {/* Logout */}
+                {isLoggedIn ? (
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base h-12 text-destructive hover:bg-destructive/10"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <LogOut className="mr-3 h-5 w-5" />
+                    Log Out
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full h-12">
+                        Login
+                      </Button>
+                    </Link>
+                    <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   )
