@@ -1,9 +1,15 @@
-'use client'
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -11,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "@/components/ui/table";
 import {
   PieChart,
   Pie,
@@ -26,7 +32,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts'
+} from "recharts";
 import {
   DollarSign,
   TrendingUp,
@@ -37,135 +43,140 @@ import {
   Eye,
   ArrowUpRight,
   Download,
-} from 'lucide-react'
+} from "lucide-react";
 
 // Mock Data
 const REVENUE_BY_SOURCE = [
-  { source: 'Subscriptions', value: 15600, percentage: 65, color: '#3b82f6' },
-  { source: 'Tips', value: 4800, percentage: 20, color: '#10b981' },
-  { source: 'Pay-per-view', value: 2400, percentage: 10, color: '#f59e0b' },
-  { source: 'Other', value: 1200, percentage: 5, color: '#8b5cf6' },
-]
+  { source: "Subscriptions", value: 15600, percentage: 65, color: "#3b82f6" },
+  { source: "Tips", value: 4800, percentage: 20, color: "#10b981" },
+  { source: "Pay-per-view", value: 2400, percentage: 10, color: "#f59e0b" },
+  { source: "Other", value: 1200, percentage: 5, color: "#8b5cf6" },
+];
 
 const REVENUE_BY_TIER = [
-  { tier: 'Basic ($9.99)', subscribers: 850, revenue: 8491.50, percentage: 35 },
-  { tier: 'Premium ($19.99)', subscribers: 520, revenue: 10394.80, percentage: 43 },
-  { tier: 'VIP ($49.99)', subscribers: 140, revenue: 6998.60, percentage: 22 },
-]
+  { tier: "Basic ($9.99)", subscribers: 850, revenue: 8491.5, percentage: 35 },
+  {
+    tier: "Premium ($19.99)",
+    subscribers: 520,
+    revenue: 10394.8,
+    percentage: 43,
+  },
+  { tier: "VIP ($49.99)", subscribers: 140, revenue: 6998.6, percentage: 22 },
+];
 
 const TOP_PAYING_SUBSCRIBERS = [
   {
-    id: '1',
-    name: 'Robert Johnson',
-    username: '@robertj',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert',
-    tier: 'VIP',
+    id: "1",
+    name: "Robert Johnson",
+    username: "@robertj",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Robert",
+    tier: "VIP",
     monthlySpend: 149.99,
     lifetime: 1799.88,
-    memberSince: 'Jan 2024',
+    memberSince: "Jan 2024",
   },
   {
-    id: '2',
-    name: 'Jennifer Smith',
-    username: '@jennifers',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jennifer',
-    tier: 'VIP',
+    id: "2",
+    name: "Jennifer Smith",
+    username: "@jennifers",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jennifer",
+    tier: "VIP",
     monthlySpend: 149.99,
     lifetime: 1649.89,
-    memberSince: 'Feb 2024',
+    memberSince: "Feb 2024",
   },
   {
-    id: '3',
-    name: 'Michael Brown',
-    username: '@michaelb',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michael',
-    tier: 'Premium',
+    id: "3",
+    name: "Michael Brown",
+    username: "@michaelb",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael",
+    tier: "Premium",
     monthlySpend: 79.99,
     lifetime: 879.89,
-    memberSince: 'Mar 2024',
+    memberSince: "Mar 2024",
   },
   {
-    id: '4',
-    name: 'Emily Davis',
-    username: '@emilyd',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily',
-    tier: 'Premium',
+    id: "4",
+    name: "Emily Davis",
+    username: "@emilyd",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
+    tier: "Premium",
     monthlySpend: 79.99,
-    lifetime: 799.90,
-    memberSince: 'Apr 2024',
+    lifetime: 799.9,
+    memberSince: "Apr 2024",
   },
   {
-    id: '5',
-    name: 'David Wilson',
-    username: '@davidw',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
-    tier: 'Premium',
+    id: "5",
+    name: "David Wilson",
+    username: "@davidw",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
+    tier: "Premium",
     monthlySpend: 79.99,
     lifetime: 719.91,
-    memberSince: 'May 2024',
+    memberSince: "May 2024",
   },
-]
+];
 
 const REVENUE_FORECAST = [
-  { month: 'Jan', actual: 18200, forecast: 18000 },
-  { month: 'Feb', actual: 19800, forecast: 19500 },
-  { month: 'Mar', actual: 21500, forecast: 21000 },
-  { month: 'Apr', actual: 22800, forecast: 22500 },
-  { month: 'May', actual: 23400, forecast: 23000 },
-  { month: 'Jun', actual: 24000, forecast: 24500 },
-  { month: 'Jul', actual: null, forecast: 26000 },
-  { month: 'Aug', actual: null, forecast: 27500 },
-  { month: 'Sep', actual: null, forecast: 29000 },
-]
+  { month: "Jan", actual: 18200, forecast: 18000 },
+  { month: "Feb", actual: 19800, forecast: 19500 },
+  { month: "Mar", actual: 21500, forecast: 21000 },
+  { month: "Apr", actual: 22800, forecast: 22500 },
+  { month: "May", actual: 23400, forecast: 23000 },
+  { month: "Jun", actual: 24000, forecast: 24500 },
+  { month: "Jul", actual: null, forecast: 26000 },
+  { month: "Aug", actual: null, forecast: 27500 },
+  { month: "Sep", actual: null, forecast: 29000 },
+];
 
 const CHURN_DATA = [
-  { month: 'Dec 14', rate: 4.2, lost: 12, new: 45 },
-  { month: 'Dec 15', rate: 3.8, lost: 11, new: 52 },
-  { month: 'Dec 16', rate: 3.5, lost: 10, new: 58 },
-  { month: 'Dec 17', rate: 3.2, lost: 9, new: 62 },
-  { month: 'Dec 18', rate: 2.9, lost: 8, new: 68 },
-  { month: 'Dec 19', rate: 2.7, lost: 7, new: 72 },
-  { month: 'Dec 20', rate: 2.5, lost: 7, new: 76 },
-]
+  { month: "Dec 14", rate: 4.2, lost: 12, new: 45 },
+  { month: "Dec 15", rate: 3.8, lost: 11, new: 52 },
+  { month: "Dec 16", rate: 3.5, lost: 10, new: 58 },
+  { month: "Dec 17", rate: 3.2, lost: 9, new: 62 },
+  { month: "Dec 18", rate: 2.9, lost: 8, new: 68 },
+  { month: "Dec 19", rate: 2.7, lost: 7, new: 72 },
+  { month: "Dec 20", rate: 2.5, lost: 7, new: 76 },
+];
 
 const METRICS = [
   {
-    title: 'Total Revenue',
-    value: '$24,000',
-    change: '+18.2%',
-    trend: 'up' as const,
+    title: "Total Revenue",
+    value: "$24,000",
+    change: "+18.2%",
+    trend: "up" as const,
     icon: DollarSign,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/20',
+    color: "text-green-600",
+    bgColor: "bg-green-100 dark:bg-green-900/20",
   },
   {
-    title: 'Avg Revenue Per User',
-    value: '$15.89',
-    change: '+5.3%',
-    trend: 'up' as const,
+    title: "Avg Revenue Per User",
+    value: "$15.89",
+    change: "+5.3%",
+    trend: "up" as const,
     icon: Users,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/20',
+    color: "text-blue-600",
+    bgColor: "bg-blue-100 dark:bg-blue-900/20",
   },
   {
-    title: 'Active Subscribers',
-    value: '1,510',
-    change: '+12.1%',
-    trend: 'up' as const,
+    title: "Active Subscribers",
+    value: "1,510",
+    change: "+12.1%",
+    trend: "up" as const,
     icon: CreditCard,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/20',
+    color: "text-purple-600",
+    bgColor: "bg-purple-100 dark:bg-purple-900/20",
   },
   {
-    title: 'Churn Rate',
-    value: '2.5%',
-    change: '-0.7%',
-    trend: 'down' as const,
+    title: "Churn Rate",
+    value: "2.5%",
+    change: "-0.7%",
+    trend: "down" as const,
     icon: TrendingDown,
-    color: 'text-pink-600',
-    bgColor: 'bg-pink-100 dark:bg-pink-900/20',
+    color: "text-pink-600",
+    bgColor: "bg-pink-100 dark:bg-pink-900/20",
   },
-]
+];
 
 export default function RevenueAnalytics() {
   return (
@@ -187,7 +198,7 @@ export default function RevenueAnalytics() {
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {METRICS.map((metric) => {
-          const Icon = metric.icon
+          const Icon = metric.icon;
           return (
             <Card key={metric.title}>
               <CardContent className="pt-6">
@@ -196,10 +207,10 @@ export default function RevenueAnalytics() {
                     <Icon className={`h-5 w-5 ${metric.color}`} />
                   </div>
                   <Badge
-                    variant={metric.trend === 'up' ? 'default' : 'secondary'}
+                    variant={metric.trend === "up" ? "default" : "secondary"}
                     className="gap-1"
                   >
-                    {metric.trend === 'up' ? (
+                    {metric.trend === "up" ? (
                       <TrendingUp className="h-3 w-3" />
                     ) : (
                       <TrendingDown className="h-3 w-3" />
@@ -215,7 +226,7 @@ export default function RevenueAnalytics() {
                 </div>
               </CardContent>
             </Card>
-          )
+          );
         })}
       </div>
 
@@ -245,11 +256,13 @@ export default function RevenueAnalytics() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => `$${value.toLocaleString()}`}
+                    formatter={(value) =>
+                      value != null ? `$${value.toLocaleString()}` : "$0"
+                    }
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--background))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
                     }}
                   />
                 </PieChart>
@@ -298,15 +311,17 @@ export default function RevenueAnalytics() {
                 <XAxis
                   dataKey="tier"
                   className="text-xs"
-                  tick={{ fill: 'currentColor' }}
+                  tick={{ fill: "currentColor" }}
                 />
-                <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+                <YAxis className="text-xs" tick={{ fill: "currentColor" }} />
                 <Tooltip
-                  formatter={(value: number) => `$${value.toLocaleString()}`}
+                  formatter={(value) =>
+                    value != null ? `$${value.toLocaleString()}` : "$0"
+                  }
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
                   }}
                 />
                 <Bar dataKey="revenue" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
@@ -314,7 +329,10 @@ export default function RevenueAnalytics() {
             </ResponsiveContainer>
             <div className="mt-6 space-y-3">
               {REVENUE_BY_TIER.map((tier) => (
-                <div key={tier.tier} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div
+                  key={tier.tier}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                >
                   <div>
                     <p className="font-medium">{tier.tier}</p>
                     <p className="text-xs text-muted-foreground">
@@ -322,7 +340,9 @@ export default function RevenueAnalytics() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">${tier.revenue.toLocaleString()}</p>
+                    <p className="font-semibold">
+                      ${tier.revenue.toLocaleString()}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {tier.percentage}% of revenue
                     </p>
@@ -360,7 +380,9 @@ export default function RevenueAnalytics() {
                         <div className="relative">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={subscriber.avatar} />
-                            <AvatarFallback>{subscriber.name[0]}</AvatarFallback>
+                            <AvatarFallback>
+                              {subscriber.name[0]}
+                            </AvatarFallback>
                           </Avatar>
                           <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
                             {index + 1}
@@ -377,9 +399,7 @@ export default function RevenueAnalytics() {
                     <TableCell>
                       <Badge
                         variant={
-                          subscriber.tier === 'VIP'
-                            ? 'default'
-                            : 'secondary'
+                          subscriber.tier === "VIP" ? "default" : "secondary"
                         }
                       >
                         {subscriber.tier}
@@ -424,24 +444,26 @@ export default function RevenueAnalytics() {
                 <XAxis
                   dataKey="month"
                   className="text-xs"
-                  tick={{ fill: 'currentColor' }}
+                  tick={{ fill: "currentColor" }}
                 />
-                <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+                <YAxis className="text-xs" tick={{ fill: "currentColor" }} />
                 <Tooltip
-                  formatter={(value: number) => `$${value.toLocaleString()}`}
+                  formatter={(value) =>
+                    value != null ? `$${value.toLocaleString()}` : "$0"
+                  }
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
                 <Line
                   type="monotone"
                   dataKey="actual"
                   stroke="#10b981"
                   strokeWidth={2}
-                  dot={{ fill: '#10b981' }}
+                  dot={{ fill: "#10b981" }}
                   name="Actual Revenue"
                 />
                 <Line
@@ -450,7 +472,7 @@ export default function RevenueAnalytics() {
                   stroke="#6366f1"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  dot={{ fill: '#6366f1' }}
+                  dot={{ fill: "#6366f1" }}
                   name="Forecast"
                 />
               </LineChart>
@@ -459,7 +481,8 @@ export default function RevenueAnalytics() {
               <div className="flex items-center gap-2">
                 <ArrowUpRight className="h-4 w-4 text-green-600" />
                 <p className="text-sm text-green-900 dark:text-green-100">
-                  <strong>Projected growth:</strong> $29,000/month by September (+20.8%)
+                  <strong>Projected growth:</strong> $29,000/month by September
+                  (+20.8%)
                 </p>
               </div>
             </div>
@@ -481,23 +504,23 @@ export default function RevenueAnalytics() {
                 <XAxis
                   dataKey="month"
                   className="text-xs"
-                  tick={{ fill: 'currentColor' }}
+                  tick={{ fill: "currentColor" }}
                 />
-                <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+                <YAxis className="text-xs" tick={{ fill: "currentColor" }} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
                 <Line
                   type="monotone"
                   dataKey="rate"
                   stroke="#ef4444"
                   strokeWidth={2}
-                  dot={{ fill: '#ef4444' }}
+                  dot={{ fill: "#ef4444" }}
                   name="Churn Rate %"
                 />
                 <Line
@@ -505,18 +528,22 @@ export default function RevenueAnalytics() {
                   dataKey="new"
                   stroke="#10b981"
                   strokeWidth={2}
-                  dot={{ fill: '#10b981' }}
+                  dot={{ fill: "#10b981" }}
                   name="New Subscribers"
                 />
               </LineChart>
             </ResponsiveContainer>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Lost this week</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Lost this week
+                </p>
                 <p className="text-xl font-bold text-red-600">7</p>
               </div>
               <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Gained this week</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Gained this week
+                </p>
                 <p className="text-xl font-bold text-green-600">76</p>
               </div>
             </div>
@@ -524,5 +551,5 @@ export default function RevenueAnalytics() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

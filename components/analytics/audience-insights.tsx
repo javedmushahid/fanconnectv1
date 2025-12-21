@@ -51,7 +51,9 @@ const AGE_BREAKDOWN = [
   { age: '45-54', count: 1200 },
   { age: '55+', count: 580 },
 ]
-
+interface PieLabelRenderProps {
+  gender: string
+}
 const GENDER_BREAKDOWN = [
   { gender: 'Male', value: 45, count: 5400 },
   { gender: 'Female', value: 52, count: 6240 },
@@ -275,7 +277,9 @@ export default function AudienceInsights() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ gender, value }) => `${gender}: ${value}%`}
+                    label={({ payload, value }) =>
+                      `${payload.gender}: ${value}%`
+                    }
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"

@@ -85,8 +85,9 @@ export default function StoryViewer({ userId }: StoryViewerProps) {
   const [progress, setProgress] = useState(0)
   const [replyText, setReplyText] = useState('')
   const [isMuted, setIsMuted] = useState(false)
-  const progressInterval = useRef<NodeJS.Timeout>()
-  const pauseTimeout = useRef<NodeJS.Timeout>()
+  const progressInterval = useRef<NodeJS.Timeout | null>(null)
+  const pauseTimeout = useRef<NodeJS.Timeout | null>(null)
+  
 
   const userData = MOCK_USER_STORIES[userId] || MOCK_USER_STORIES.user1
   const stories = userData.stories as Story[]
