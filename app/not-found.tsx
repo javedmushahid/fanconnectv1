@@ -1,31 +1,39 @@
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileQuestion } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Search, Home, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="max-w-md w-full">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <FileQuestion className="h-6 w-6 text-muted-foreground" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-background to-purple-50 dark:from-blue-950/20 dark:via-background dark:to-purple-950/20 flex items-center justify-center p-4">
+      <Card className="max-w-2xl w-full">
+        <CardContent className="pt-12 pb-8 text-center">
+          <div className="mb-8 flex justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary blur-3xl opacity-20" />
+              <h1 className="relative text-9xl font-bold text-primary">404</h1>
+            </div>
           </div>
-          <CardTitle>Page Not Found</CardTitle>
-          <CardDescription>
-            The page you're looking for doesn't exist or has been moved.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <p className="text-7xl font-bold text-muted-foreground">404</p>
+
+          <div className="mb-8 space-y-3">
+            <h2 className="text-3xl font-bold">Page Not Found</h2>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              The page you're looking for doesn't exist or has been moved.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/" className="flex-1">
-              <Button className="w-full">Go Home</Button>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/feed">
+              <Button size="lg" className="gap-2 w-full sm:w-auto">
+                <Home className="h-4 w-4" />
+                Go Home
+              </Button>
             </Link>
-            <Link href="/feed" className="flex-1">
-              <Button variant="outline" className="w-full">View Feed</Button>
+            <Link href="/explore">
+              <Button variant="outline" size="lg" className="gap-2 w-full sm:w-auto">
+                <Search className="h-4 w-4" />
+                Explore
+              </Button>
             </Link>
           </div>
         </CardContent>

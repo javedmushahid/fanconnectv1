@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h2>Right-click the icon below and save as PNG at different sizes:</h2>
+  <p>Sizes needed: 72, 96, 128, 144, 152, 192, 384, 512</p>
+  
+  <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="512" height="512" fill="url(#grad1)" rx="90"/>
+    <text x="50%" y="55%" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="280" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+      FC
+    </text>
+  </svg>
+  
+  <br><br>
+  <p><strong>Instructions:</strong></p>
+  <ol>
+    <li>Open Chrome DevTools (F12)</li>
+    <li>Right-click the SVG → Inspect</li>
+    <li>In Elements tab, right-click the &lt;svg&gt; tag</li>
+    <li>Select "Capture node screenshot"</li>
+    <li>Resize and save as icon-512.png</li>
+    <li>Use an online tool to resize to other sizes</li>
+  </ol>
+  
+  <p><strong>Or use these online tools:</strong></p>
+  <ul>
+    <li><a href="https://realfavicongenerator.net/" target="_blank">Real Favicon Generator</a></li>
+    <li><a href="https://www.pwabuilder.com/" target="_blank">PWA Builder</a></li>
+    <li><a href="https://favicon.io/" target="_blank">Favicon.io</a></li>
+  </ul>
+</body>
+</html>

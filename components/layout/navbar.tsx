@@ -1,8 +1,6 @@
-
 'use client'
-
 import Link from 'next/link'
-import { MessageCircle, Search, Menu, X, Home, User, Settings, LogOut, Compass, Bookmark, Heart, Upload, DollarSign, Users, BarChart3, Sun, Moon, Monitor } from 'lucide-react'
+import { MessageCircle, Search, Menu, X, Home, User, Settings, LogOut, Compass, Bookmark, Heart, Upload, DollarSign, Users, BarChart3, Sun, Moon, Monitor, Video, Film, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
@@ -19,12 +17,15 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import NotificationPanel from '@/components/layout/notification-panel'
+import GoLiveModal from '@/components/streaming/go-live-modal'
 import { Separator } from '@/components/ui/separator'
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(true)
+  const [isCreator, setIsCreator] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const [showGoLive, setShowGoLive] = useState(false)
   const { theme, setTheme } = useTheme()
 
   return (
@@ -42,7 +43,6 @@ export default function Navbar() {
               >
                 {mobileMenuOpen ? <X className="h-6 w-6 text-foreground" /> : <Menu className="h-6 w-6 text-foreground" />}
               </Button>
-
               <Link href="/feed" className="flex items-center group">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -67,6 +67,18 @@ export default function Navbar() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Go Live Button */}
+              {isLoggedIn && isCreator && (
+                <Button
+                  onClick={() => setShowGoLive(true)}
+                  className="hidden sm:flex gap-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white"
+                  size="sm"
+                >
+                  <Video className="h-4 w-4" />
+                  <span className="hidden lg:inline">Go Live</span>
+                </Button>
+              )}
+
               {/* Theme Toggle */}
               <div className="hidden sm:block">
                 <ThemeToggle />
@@ -84,7 +96,7 @@ export default function Navbar() {
 
               {isLoggedIn ? (
                 <>
-                  {/* Messages - ALWAYS VISIBLE */}
+                  {/* Messages */}
                   <Link href="/messages">
                     <Button variant="ghost" size="icon" className="relative hover:bg-muted/80 group">
                       <MessageCircle className="h-5 w-5 group-hover:text-primary transition-colors" />
@@ -112,9 +124,7 @@ export default function Navbar() {
                       <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-medium leading-none">Jane Doe</p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            @janedoe
-                          </p>
+                          <p className="text-xs leading-none text-muted-foreground">@janedoe</p>
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
@@ -173,18 +183,15 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Enhanced Mobile Navigation Menu - PORTAL STYLE */}
+      {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
         <>
-          {/* Backdrop */}
           <div 
             className="lg:hidden fixed inset-0 bg-black/50 z-[100] animate-in fade-in duration-200"
             onClick={() => setMobileMenuOpen(false)}
           />
           
-          {/* Menu Panel */}
           <div className="lg:hidden fixed inset-y-0 left-0 right-0 bg-background z-[101] animate-in slide-in-from-left duration-300">
-            {/* Header with Close Button */}
             <div className="flex items-center justify-between px-4 h-16 border-b bg-muted/30">
               <h2 className="text-lg font-bold">Menu</h2>
               <Button
@@ -197,9 +204,25 @@ export default function Navbar() {
               </Button>
             </div>
 
-            {/* Scrollable Content */}
             <div className="h-[calc(100vh-4rem)] overflow-y-auto pb-20">
               <div className="px-4 py-6 space-y-6">
+                {/* Go Live Button - Mobile */}
+                {isLoggedIn && isCreator && (
+                  <>
+                    <Button
+                      onClick={() => {
+                        setShowGoLive(true)
+                        setMobileMenuOpen(false)
+                      }}
+                      className="w-full gap-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white h-12"
+                    >
+                      <Video className="h-5 w-5" />
+                      Go Live
+                    </Button>
+                    <Separator />
+                  </>
+                )}
+
                 {/* Main Navigation */}
                 <div className="space-y-2">
                   <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -209,6 +232,12 @@ export default function Navbar() {
                     <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
                       <Home className="mr-3 h-5 w-5" />
                       Home
+                    </Button>
+                  </Link>
+                  <Link href="/stories" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <Film className="mr-3 h-5 w-5" />
+                      Stories
                     </Button>
                   </Link>
                   <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
@@ -242,6 +271,12 @@ export default function Navbar() {
                     <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
                       <BarChart3 className="mr-3 h-5 w-5" />
                       Dashboard
+                    </Button>
+                  </Link>
+                  <Link href="/analytics/overview" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start text-base h-12 hover:bg-muted/80">
+                      <TrendingUp className="mr-3 h-5 w-5" />
+                      Analytics
                     </Button>
                   </Link>
                   <Link href="/creator/upload" onClick={() => setMobileMenuOpen(false)}>
@@ -287,7 +322,7 @@ export default function Navbar() {
 
                 <Separator />
 
-                {/* Theme Selection - BUTTONS INSTEAD OF DROPDOWN */}
+                {/* Theme Selection */}
                 <div className="space-y-2">
                   <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     Theme
@@ -349,6 +384,9 @@ export default function Navbar() {
           </div>
         </>
       )}
+
+      {/* Go Live Modal */}
+      <GoLiveModal open={showGoLive} onClose={() => setShowGoLive(false)} />
     </>
   )
 }

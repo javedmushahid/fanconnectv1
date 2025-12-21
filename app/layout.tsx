@@ -1,30 +1,37 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ToastProvider } from "@/components/providers/toast-provider";
-import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import ServiceWorkerRegister from "@/components/pwa/service-worker-register";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FanConnect - Content Creator Platform",
-  description: "Connect with your favorite creators and access exclusive content",
-  icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-    ],
-    apple: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-    ],
+  title: "FanConnect - Connect with Your Favorite Creators",
+  description: "Join FanConnect to support and connect with your favorite creators. Subscribe, watch live streams, and access exclusive content.",
+  manifest: "/manifest.json",
+  themeColor: "#8b5cf6",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FanConnect",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "FanConnect",
+    title: "FanConnect - Connect with Your Favorite Creators",
+    description: "Join FanConnect to support and connect with your favorite creators",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FanConnect - Connect with Your Favorite Creators",
+    description: "Join FanConnect to support and connect with your favorite creators",
   },
 };
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-}
 
 export default function RootLayout({
   children,
@@ -33,6 +40,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
@@ -40,8 +51,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ServiceWorkerRegister />
           {children}
-          <ToastProvider />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

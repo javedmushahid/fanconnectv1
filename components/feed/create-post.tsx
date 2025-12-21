@@ -25,7 +25,7 @@ export default function CreatePost() {
             placeholder="What's on your mind?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[80px] sm:min-h-[100px] resize-none border-none focus-visible:ring-0 p-0 text-sm sm:text-base"
+            className="min-h-[80px] sm:min-h-[100px] resize-none border-none focus-visible:ring-0 p-3 text-sm sm:text-base"
           />
           
           {/* Media Upload Buttons */}

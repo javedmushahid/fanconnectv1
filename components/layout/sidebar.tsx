@@ -1,7 +1,8 @@
+
 'use client'
 
 import Link from 'next/link'
-import { Home, Compass, Heart, Bookmark, Settings, DollarSign, Users, Upload, TrendingUp } from 'lucide-react'
+import { Home, Compass, Heart, Bookmark, Settings, DollarSign, Users, Upload, TrendingUp, Film, BarChart3 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -9,10 +10,13 @@ import { cn } from '@/lib/utils'
 
 export default function Sidebar() {
   const pathname = usePathname()
+  
+  // Set this to true to show Creator Studio after using states and other things
   const isCreator = true
 
   const navItems = [
     { icon: Home, label: 'Feed', href: '/feed' },
+    { icon: Film, label: 'Stories', href: '/stories' },
     { icon: Compass, label: 'Explore', href: '/explore' },
     { icon: Bookmark, label: 'Saved', href: '/saved' },
     { icon: Heart, label: 'Subscriptions', href: '/subscriptions' },
@@ -20,19 +24,22 @@ export default function Sidebar() {
   ]
 
   const creatorItems = [
+    { icon: BarChart3, label: 'Dashboard', href: '/creator/dashboard' },
+    { icon: TrendingUp, label: 'Analytics', href: '/analytics/overview' },
     { icon: Upload, label: 'Upload', href: '/creator/upload' },
     { icon: DollarSign, label: 'Earnings', href: '/creator/earnings' },
     { icon: Users, label: 'Subscribers', href: '/creator/subscribers' },
-    { icon: TrendingUp, label: 'Analytics', href: '/creator/dashboard' },
   ]
 
   return (
     <aside className="hidden lg:flex flex-col w-64 xl:w-72 border-r bg-background h-[calc(100vh-4rem)] sticky top-16">
       <div className="flex-1 overflow-y-auto py-6 px-3">
+        {/* Main Navigation */}
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
+
             return (
               <Link key={item.href} href={item.href}>
                 <Button
@@ -50,6 +57,7 @@ export default function Sidebar() {
           })}
         </nav>
 
+        {/* Creator Studio Section */}
         {isCreator && (
           <div className="mt-8">
             <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -58,7 +66,8 @@ export default function Sidebar() {
             <nav className="space-y-1">
               {creatorItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || pathname.startsWith(item.href)
+
                 return (
                   <Link key={item.href} href={item.href}>
                     <Button
@@ -78,16 +87,19 @@ export default function Sidebar() {
           </div>
         )}
 
+        {/* Become a Creator Card - Only show when NOT a creator */}
         {!isCreator && (
-          <Card className="mt-8 p-4 bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0">
-            <h3 className="font-bold mb-2 text-lg">Become a Creator</h3>
-            <p className="text-sm mb-4 opacity-90">
-              Start earning from your content today
-            </p>
-            <Button className="w-full bg-white text-blue-600 hover:bg-gray-100">
-              Get Started
-            </Button>
-          </Card>
+          <Link href="/creator/onboarding">
+            <Card className="mt-8 p-4 bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0 cursor-pointer hover:shadow-lg transition-shadow">
+              <h3 className="font-bold mb-2 text-lg">Become a Creator</h3>
+              <p className="text-sm mb-4 opacity-90">
+                Start earning from your content today
+              </p>
+              <Button className="w-full bg-white text-blue-600 hover:bg-gray-100">
+                Get Started
+              </Button>
+            </Card>
+          </Link>
         )}
       </div>
     </aside>

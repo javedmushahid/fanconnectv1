@@ -1,0 +1,45 @@
+{
+  "name": "FanConnect - Connect with Creators",
+  "short_name": "FanConnect",
+  "description": "Subscribe, watch live streams, and access exclusive content from your favorite creators",
+  "start_url": "/feed",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Feed",
+      "short_name": "Feed",
+      "description": "View your feed",
+      "url": "/feed"
+    },
+    {
+      "name": "Stories",
+      "short_name": "Stories",
+      "description": "View stories",
+      "url": "/stories"
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Check messages",
+      "url": "/messages"
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "View analytics",
+      "url": "/analytics/overview"
+    }
+  ],
+  "categories": ["social", "entertainment"]
+}
