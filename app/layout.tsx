@@ -9,7 +9,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "FanConnect - Connect with Your Favorite Creators",
-  description: "Join FanConnect to support and connect with your favorite creators. Subscribe, watch live streams, and access exclusive content.",
+  description:
+    "Join FanConnect to support and connect with your favorite creators. Subscribe, watch live streams, and access exclusive content.",
   manifest: "/manifest.json",
   themeColor: "#8b5cf6",
   appleWebApp: {
@@ -24,12 +25,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "FanConnect",
     title: "FanConnect - Connect with Your Favorite Creators",
-    description: "Join FanConnect to support and connect with your favorite creators",
+    description:
+      "Join FanConnect to support and connect with your favorite creators",
   },
   twitter: {
     card: "summary_large_image",
     title: "FanConnect - Connect with Your Favorite Creators",
-    description: "Join FanConnect to support and connect with your favorite creators",
+    description:
+      "Join FanConnect to support and connect with your favorite creators",
   },
 };
 
@@ -42,7 +45,16 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=5"
+        />
+        {/* <script
+          id="otpless-sdk"
+          src="https://otpless.com/v4/headless.js"
+          data-appid="FCQOZ6OO4YEZOS1HZFAA"
+        ></script> */}
+        
       </head>
       <body className={inter.className}>
         <ThemeProvider

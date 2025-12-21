@@ -43,7 +43,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className=" items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md backdrop-blur-xl">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
@@ -77,7 +77,7 @@ export default function LoginPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className=" px-2 text-muted-foreground">
+              <span className="px-2 text-muted-foreground">
                 Or continue with
               </span>
             </div>
