@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import ServiceWorkerRegister from "@/components/pwa/service-worker-register";
+import { AuthProvider } from "@/contexts/auth-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,12 +50,6 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=5"
         />
-        {/* <script
-          id="otpless-sdk"
-          src="https://otpless.com/v4/headless.js"
-          data-appid="FCQOZ6OO4YEZOS1HZFAA"
-        ></script> */}
-        
       </head>
       <body className={inter.className}>
         <ThemeProvider
@@ -64,7 +59,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ServiceWorkerRegister />
-          {children}
+          <AuthProvider>{children}</AuthProvider>
           <Toaster />
         </ThemeProvider>
       </body>
