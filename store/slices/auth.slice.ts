@@ -1,3 +1,4 @@
+
 import { StateCreator } from 'zustand'
 import { authAPI } from '@/lib/api/endpoints/auth'
 import { tokenStorage } from '@/lib/utils/storage'
@@ -12,8 +13,6 @@ import { toast } from 'sonner'
 
 const initialState = {
   user: null,
-  accessToken: null,
-  refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -30,23 +29,21 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
     try {
       const response = await authAPI.login(credentials)
 
-      // Save tokens
-      tokenStorage.setAccessToken(response.accessToken)
-      tokenStorage.setRefreshToken(response.refreshToken)
+      // Save tokens (only if not using httpOnly cookies)
+      if (!tokenStorage.isUsingCookies()) {
+        tokenStorage.setAccessToken(response.tokens.accessToken)
+        tokenStorage.setRefreshToken(response.tokens.refreshToken)
+      }
 
       // Update state
       set({
         user: response.user,
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
         isAuthenticated: true,
         isLoading: false,
         error: null,
       })
 
       toast.success('Login successful!')
-      
-      // Redirect handled by component
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed'
       
@@ -75,8 +72,6 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
       })
 
       toast.success('OTP sent to your email!')
-      
-      // Redirect handled by component
     } catch (error: any) {
       const message = error.response?.data?.message || 'Registration failed'
       
@@ -97,15 +92,15 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
     try {
       const response = await authAPI.verifyOTP(payload)
 
-      // Save tokens
-      tokenStorage.setAccessToken(response.accessToken)
-      tokenStorage.setRefreshToken(response.refreshToken)
+      // Save tokens (only if not using httpOnly cookies)
+      if (!tokenStorage.isUsingCookies()) {
+        tokenStorage.setAccessToken(response.tokens.accessToken)
+        tokenStorage.setRefreshToken(response.tokens.refreshToken)
+      }
 
       // Update state
       set({
         user: response.user,
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -113,8 +108,6 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
       })
 
       toast.success('Account verified successfully!')
-      
-      // Redirect handled by component
     } catch (error: any) {
       const message = error.response?.data?.message || 'OTP verification failed'
       
@@ -129,8 +122,8 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
   },
 
   // Refresh Token
-  refreshAccessToken: async () => {
-    const currentRefreshToken = get().refreshToken || tokenStorage.getRefreshToken()
+  refreshToken: async () => {
+    const currentRefreshToken = tokenStorage.getRefreshToken()
 
     if (!currentRefreshToken) {
       get().logout()
@@ -140,15 +133,11 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
     try {
       const response = await authAPI.refreshToken(currentRefreshToken)
 
-      // Save new tokens
-      tokenStorage.setAccessToken(response.accessToken)
-      tokenStorage.setRefreshToken(response.refreshToken)
-
-      // Update state
-      set({
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
-      })
+      // Save new tokens (only if not using httpOnly cookies)
+      if (!tokenStorage.isUsingCookies()) {
+        tokenStorage.setAccessToken(response.accessToken)
+        tokenStorage.setRefreshToken(response.refreshToken)
+      }
     } catch (error) {
       console.error('Token refresh failed:', error)
       get().logout()
@@ -166,9 +155,7 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
       tokenStorage.clearTokens()
 
       // Reset state
-      set({
-        ...initialState,
-      })
+      set(initialState)
 
       toast.success('Logged out successfully')
       
@@ -192,10 +179,7 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
 
   // State setters
   setLoading: (isLoading: boolean) => set({ isLoading }),
-  
   setError: (error: string | null) => set({ error }),
-  
   setPendingEmail: (pendingEmail: string | null) => set({ pendingEmail }),
-  
   reset: () => set(initialState),
 })

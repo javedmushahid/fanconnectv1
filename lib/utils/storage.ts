@@ -1,16 +1,67 @@
+
 /**
- * Secure token storage with encryption (optional)
- * Uses localStorage with fallback to memory storage
+ * Secure token storage with httpOnly cookies (preferred)
+ * Falls back to localStorage for development
  */
 
 const isServer = typeof window === 'undefined'
 
+// Cookie utilities
+export const cookieStorage = {
+  // Get cookie value
+  getCookie: (name: string): string | null => {
+    if (isServer) return null
+    
+    const value = `; ${document.cookie}`
+    const parts = value.split(`; ${name}=`)
+    
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || null
+    }
+    
+    return null
+  },
+
+  // Check if cookie exists
+  hasCookie: (name: string): boolean => {
+    return !!cookieStorage.getCookie(name)
+  },
+
+  // Delete cookie (client-side)
+  deleteCookie: (name: string): void => {
+    if (isServer) return
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+  },
+}
+
+// Memory storage for SSR
+class MemoryStorage {
+  private storage: Map<string, string> = new Map()
+
+  setItem(key: string, value: string): void {
+    this.storage.set(key, value)
+  }
+
+  getItem(key: string): string | null {
+    return this.storage.get(key) || null
+  }
+
+  removeItem(key: string): void {
+    this.storage.delete(key)
+  }
+
+  clear(): void {
+    this.storage.clear()
+  }
+}
+
+// Secure storage (localStorage fallback)
 class SecureStorage {
-  private memoryStorage: Map<string, string> = new Map()
+  private memoryStorage = new MemoryStorage()
 
   setItem(key: string, value: string): void {
     if (isServer) {
-      this.memoryStorage.set(key, value)
+      this.memoryStorage.setItem(key, value)
       return
     }
 
@@ -18,26 +69,26 @@ class SecureStorage {
       localStorage.setItem(key, value)
     } catch (error) {
       console.error('Storage error:', error)
-      this.memoryStorage.set(key, value)
+      this.memoryStorage.setItem(key, value)
     }
   }
 
   getItem(key: string): string | null {
     if (isServer) {
-      return this.memoryStorage.get(key) || null
+      return this.memoryStorage.getItem(key)
     }
 
     try {
       return localStorage.getItem(key)
     } catch (error) {
       console.error('Storage error:', error)
-      return this.memoryStorage.get(key) || null
+      return this.memoryStorage.getItem(key)
     }
   }
 
   removeItem(key: string): void {
     if (isServer) {
-      this.memoryStorage.delete(key)
+      this.memoryStorage.removeItem(key)
       return
     }
 
@@ -45,7 +96,7 @@ class SecureStorage {
       localStorage.removeItem(key)
     } catch (error) {
       console.error('Storage error:', error)
-      this.memoryStorage.delete(key)
+      this.memoryStorage.removeItem(key)
     }
   }
 
@@ -66,16 +117,52 @@ class SecureStorage {
 
 export const secureStorage = new SecureStorage()
 
-// Token management
+// Token management (Cookie-first, localStorage fallback)
 export const tokenStorage = {
-  getAccessToken: () => secureStorage.getItem('accessToken'),
-  setAccessToken: (token: string) => secureStorage.setItem('accessToken', token),
-  
-  getRefreshToken: () => secureStorage.getItem('refreshToken'),
-  setRefreshToken: (token: string) => secureStorage.setItem('refreshToken', token),
-  
+  // Check if using httpOnly cookies
+  isUsingCookies: () => {
+    return cookieStorage.hasCookie('accessToken')
+  },
+
+  // Get access token (cookie first, then localStorage)
+  getAccessToken: (): string | null => {
+    const cookieToken = cookieStorage.getCookie('accessToken')
+    if (cookieToken) return cookieToken
+    
+    return secureStorage.getItem('accessToken')
+  },
+
+  // Set access token (localStorage only - backend sets cookie)
+  setAccessToken: (token: string) => {
+    // Only set in localStorage if not using cookies
+    if (!tokenStorage.isUsingCookies()) {
+      secureStorage.setItem('accessToken', token)
+    }
+  },
+
+  // Get refresh token
+  getRefreshToken: (): string | null => {
+    const cookieToken = cookieStorage.getCookie('refreshToken')
+    if (cookieToken) return cookieToken
+    
+    return secureStorage.getItem('refreshToken')
+  },
+
+  // Set refresh token
+  setRefreshToken: (token: string) => {
+    if (!tokenStorage.isUsingCookies()) {
+      secureStorage.setItem('refreshToken', token)
+    }
+  },
+
+  // Clear all tokens
   clearTokens: () => {
+    // Clear localStorage
     secureStorage.removeItem('accessToken')
     secureStorage.removeItem('refreshToken')
+    
+    // Clear cookies (client-side)
+    cookieStorage.deleteCookie('accessToken')
+    cookieStorage.deleteCookie('refreshToken')
   },
 }

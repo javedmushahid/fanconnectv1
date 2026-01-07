@@ -1,12 +1,11 @@
+
 import { useStore } from '@/store'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { tokenStorage } from '@/lib/utils/storage'
+import { tokenManager } from '@/lib/auth/token-manager'
 import { authAPI } from '@/lib/api/endpoints/auth'
 
-/**
- * Convenience hook for auth operations
- */
 export const useAuth = () => {
   const router = useRouter()
   
@@ -24,7 +23,7 @@ export const useAuth = () => {
     setLoading,
   } = useStore()
 
-  // Initialize auth on mount
+  // Initialize auth and token manager
   useEffect(() => {
     const initAuth = async () => {
       const accessToken = tokenStorage.getAccessToken()
@@ -32,6 +31,11 @@ export const useAuth = () => {
       if (accessToken && !user) {
         try {
           setLoading(true)
+          
+          // Initialize token manager (starts auto-refresh)
+          tokenManager.initialize()
+          
+          // Fetch user data
           const userData = await authAPI.getCurrentUser()
           updateUser(userData)
         } catch (error) {
@@ -40,10 +44,18 @@ export const useAuth = () => {
         } finally {
           setLoading(false)
         }
+      } else if (accessToken) {
+        // Just initialize token manager if user already exists
+        tokenManager.initialize()
       }
     }
 
     initAuth()
+
+    // Cleanup
+    return () => {
+      tokenManager.destroy()
+    }
   }, [])
 
   return {
@@ -55,22 +67,25 @@ export const useAuth = () => {
     pendingEmail,
     
     // Actions
-    login: async (emailOrUsername: string, password: string) => {
-      await login({ emailOrUsername, password })
+    login: async (email: string, password: string) => {
+      await login({ email, password })
+      tokenManager.initialize() // Start auto-refresh
       router.push('/feed')
     },
     
-    register: async (email: string, password: string, username: string, displayName: string) => {
-      await register({ email, password, username, displayName })
+    register: async (email: string, password: string, username: string, name: string) => {
+      await register({ email, password, username, name })
       router.push('/verify-otp')
     },
     
     verifyOTP: async (email: string, otp: string) => {
       await verifyOTP({ email, otp })
+      tokenManager.initialize() // Start auto-refresh
       router.push('/feed')
     },
     
     logout: async () => {
+      tokenManager.destroy() // Stop auto-refresh
       await logout()
     },
     
@@ -78,10 +93,6 @@ export const useAuth = () => {
   }
 }
 
-/**
- * Hook to require authentication
- * Redirects to login if not authenticated
- */
 export const useRequireAuth = () => {
   const router = useRouter()
   const { isAuthenticated, isLoading } = useAuth()

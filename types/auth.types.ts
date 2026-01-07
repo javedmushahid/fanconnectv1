@@ -1,12 +1,11 @@
+
 export interface User {
   id: string
   email: string
   username: string
-  displayName: string
-  avatar?: string
-  bio?: string
-  isVerified: boolean
-  createdAt: string
+  name: string // Changed from displayName
+  avatar: string | null
+  role: 'USER' | 'CREATOR' | 'ADMIN'
 }
 
 export interface AuthTokens {
@@ -14,8 +13,35 @@ export interface AuthTokens {
   refreshToken: string
 }
 
+// API Response structure
+export interface ApiResponse<T> {
+  success: boolean
+  message: string
+  data: T
+}
+
+export interface LoginResponse {
+  user: User
+  tokens: AuthTokens
+}
+
+export interface RegisterResponse {
+  message: string
+  email: string
+}
+
+export interface VerifyOTPResponse {
+  user: User
+  tokens: AuthTokens
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string
+  refreshToken: string
+}
+
 export interface LoginCredentials {
-  emailOrUsername: string
+  email: string
   password: string
 }
 
@@ -23,7 +49,7 @@ export interface RegisterCredentials {
   email: string
   password: string
   username: string
-  displayName: string
+  name: string // Changed from displayName
 }
 
 export interface VerifyOTPPayload {
@@ -33,8 +59,6 @@ export interface VerifyOTPPayload {
 
 export interface AuthState {
   user: User | null
-  accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
@@ -42,17 +66,12 @@ export interface AuthState {
 }
 
 export interface AuthActions {
-  // Auth actions
   login: (credentials: LoginCredentials) => Promise<void>
   register: (credentials: RegisterCredentials) => Promise<void>
   verifyOTP: (payload: VerifyOTPPayload) => Promise<void>
   logout: () => Promise<void>
-  refreshAccessToken: () => Promise<void>
-  
-  // User actions
+  refreshToken: () => Promise<void>
   updateUser: (user: Partial<User>) => void
-  
-  // State setters
   setLoading: (isLoading: boolean) => void
   setError: (error: string | null) => void
   setPendingEmail: (email: string | null) => void
