@@ -129,7 +129,7 @@ export const createAuthSlice: StateCreator<AuthStore> = (set, get) => ({
   },
 
   // Refresh Token
-  refreshToken: async () => {
+  refreshAccessToken: async () => {
     const currentRefreshToken = get().refreshToken || tokenStorage.getRefreshToken()
 
     if (!currentRefreshToken) {

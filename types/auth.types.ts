@@ -47,7 +47,7 @@ export interface AuthActions {
   register: (credentials: RegisterCredentials) => Promise<void>
   verifyOTP: (payload: VerifyOTPPayload) => Promise<void>
   logout: () => Promise<void>
-  refreshToken: () => Promise<void>
+  refreshAccessToken: () => Promise<void>
   
   // User actions
   updateUser: (user: Partial<User>) => void
