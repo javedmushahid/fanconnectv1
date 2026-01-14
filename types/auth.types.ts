@@ -1,19 +1,47 @@
-
+// User interface
 export interface User {
   id: string
   email: string
   username: string
-  name: string // Changed from displayName
+  name: string
+  bio?: string
   avatar: string | null
+  banner?: string | null
   role: 'USER' | 'CREATOR' | 'ADMIN'
+  isEmailVerified: boolean
+  createdAt: string
 }
 
-export interface AuthTokens {
-  accessToken: string
-  refreshToken: string
+// API request types
+export interface LoginCredentials {
+  emailOrUsername: string
+  password: string
 }
 
-// API Response structure
+export interface RegisterCredentials {
+  email: string
+  username: string
+  password: string
+  name: string
+}
+
+export interface VerifyOTPPayload {
+  email: string
+  otp: string
+}
+
+export interface ResetPasswordPayload {
+  email: string
+  otp: string
+  newPassword: string
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
+
+// API response types (matches your backend)
 export interface ApiResponse<T> {
   success: boolean
   message: string
@@ -22,59 +50,39 @@ export interface ApiResponse<T> {
 
 export interface LoginResponse {
   user: User
-  tokens: AuthTokens
 }
 
 export interface RegisterResponse {
   message: string
-  email: string
 }
 
 export interface VerifyOTPResponse {
+  message: string
   user: User
-  tokens: AuthTokens
 }
 
-export interface RefreshTokenResponse {
-  accessToken: string
-  refreshToken: string
-}
-
-export interface LoginCredentials {
-  email: string
-  password: string
-}
-
-export interface RegisterCredentials {
-  email: string
-  password: string
-  username: string
-  name: string // Changed from displayName
-}
-
-export interface VerifyOTPPayload {
-  email: string
-  otp: string
-}
-
+// Zustand store types
 export interface AuthState {
   user: User | null
-  isAuthenticated: boolean
   isLoading: boolean
+  isInitialized: boolean
   error: string | null
-  pendingEmail: string | null
 }
 
 export interface AuthActions {
-  login: (credentials: LoginCredentials) => Promise<void>
+  // Auth actions
+  login: (credentials: LoginCredentials) => Promise<User>
   register: (credentials: RegisterCredentials) => Promise<void>
-  verifyOTP: (payload: VerifyOTPPayload) => Promise<void>
+  verifyOTP: (payload: VerifyOTPPayload) => Promise<User>
   logout: () => Promise<void>
-  refreshToken: () => Promise<void>
-  updateUser: (user: Partial<User>) => void
-  setLoading: (isLoading: boolean) => void
+  
+  // State setters
+  setUser: (user: User | null) => void
+  setLoading: (loading: boolean) => void
+  setInitialized: (initialized: boolean) => void
   setError: (error: string | null) => void
-  setPendingEmail: (email: string | null) => void
+  
+  // Reset
   reset: () => void
 }
 

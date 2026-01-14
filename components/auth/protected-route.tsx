@@ -7,44 +7,49 @@ import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  redirectTo?: string
-  requireAuth?: boolean
+  requireAuth?: boolean // true = need to be logged in, false = need to be logged out
 }
 
+/**
+ * Protected Route Component
+ * Handles both protected pages and auth pages
+ */
 export function ProtectedRoute({ 
   children, 
-  redirectTo = '/login',
   requireAuth = true 
 }: ProtectedRouteProps) {
   const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isInitialized } = useAuth()
 
   useEffect(() => {
-    if (!isLoading) {
-      if (requireAuth && !isAuthenticated) {
-        router.push(redirectTo)
-      } else if (!requireAuth && isAuthenticated) {
-        router.push('/feed')
-      }
-    }
-  }, [isAuthenticated, isLoading, requireAuth, redirectTo, router])
+    // Wait for auth to initialize
+    if (!isInitialized) return
 
-  // Show loading state
-  if (isLoading) {
+    // If page needs auth but user not logged in → redirect to login
+    if (requireAuth && !isAuthenticated) {
+      router.push('/login')
+    }
+
+    // If page needs NO auth (login/register) but user IS logged in → redirect to feed
+    if (!requireAuth && isAuthenticated) {
+      router.push('/feed')
+    }
+  }, [isInitialized, isAuthenticated, requireAuth, router])
+
+  // Show loading while checking auth
+  if (!isInitialized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
-  // Show nothing while redirecting
+  // Wrong auth state, show nothing (redirecting)
   if ((requireAuth && !isAuthenticated) || (!requireAuth && isAuthenticated)) {
     return null
   }
 
+  // Correct auth state, show content
   return <>{children}</>
 }

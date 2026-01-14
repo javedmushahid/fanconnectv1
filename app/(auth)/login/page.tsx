@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,40 +18,60 @@ import { useAuth } from "@/hooks/use-auth";
 import { SocialLoginButton } from "@/components/auth/SocialLoginButton";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { FaGoogle, FaFacebookF, FaApple } from "react-icons/fa";
+import { useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get("session") === "expired";
+
   const router = useRouter();
-  const { login, isLoading: loading, error } = useAuth();
-  const [email, setEmail] = useState("");
+  const { login, isLoading, isAuthenticated, isInitialized } = useAuth();
+
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState("");
+
+  useEffect(() => {
+    if (isInitialized && isAuthenticated) {
+      console.log("[Login] Already authenticated, redirecting to /feed");
+      router.push("/feed");
+    }
+  }, [isInitialized, isAuthenticated, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError("");
 
     // Validation
-    if (!email || !password) {
+    if (!emailOrUsername || !password) {
       setValidationError("Please fill in all fields");
       return;
     }
 
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setValidationError("Please enter a valid email");
-      return;
-    }
-
     try {
-      await login(email, password);
-      // Redirect handled by useAuth hook
+      await login(emailOrUsername, password);
     } catch (err) {
-      // Error handled by useAuth hook
+      // Error handled by store
     }
   };
   const handleOAuth = (provider: "google" | "facebook" | "apple") => {
     // TODO: redirect to backend OAuth
     console.log(`OAuth with ${provider}`);
   };
+
+  if (!isInitialized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <ProtectedRoute requireAuth={false}>
@@ -105,8 +125,8 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={emailOrUsername}
+                  onChange={(e) => setEmailOrUsername(e.target.value)}
                   required
                 />
               </div>

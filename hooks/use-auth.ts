@@ -1,107 +1,54 @@
+'use client'
 
-import { useStore } from '@/store'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { tokenStorage } from '@/lib/utils/storage'
+import { useAuthStore } from '@/store/auth.store'
 import { tokenManager } from '@/lib/auth/token-manager'
-import { authAPI } from '@/lib/api/endpoints/auth'
 
-export const useAuth = () => {
+/**
+ * useAuth Hook
+ * Convenient access to auth state and actions
+ * Handles routing after auth actions
+ */
+export function useAuth() {
   const router = useRouter()
-  
-  const {
-    user,
-    isAuthenticated,
-    isLoading,
-    error,
-    pendingEmail,
-    login,
-    register,
-    verifyOTP,
-    logout,
-    updateUser,
-    setLoading,
-  } = useStore()
-
-  // Initialize auth and token manager
-  useEffect(() => {
-    const initAuth = async () => {
-      const accessToken = tokenStorage.getAccessToken()
-
-      if (accessToken && !user) {
-        try {
-          setLoading(true)
-          
-          // Initialize token manager (starts auto-refresh)
-          tokenManager.initialize()
-          
-          // Fetch user data
-          const userData = await authAPI.getCurrentUser()
-          updateUser(userData)
-        } catch (error) {
-          console.error('Failed to fetch user:', error)
-          tokenStorage.clearTokens()
-        } finally {
-          setLoading(false)
-        }
-      } else if (accessToken) {
-        // Just initialize token manager if user already exists
-        tokenManager.initialize()
-      }
-    }
-
-    initAuth()
-
-    // Cleanup
-    return () => {
-      tokenManager.destroy()
-    }
-  }, [])
+  const store = useAuthStore()
 
   return {
     // State
-    user,
-    isAuthenticated,
-    isLoading,
-    error,
-    pendingEmail,
-    
-    // Actions
-    login: async (email: string, password: string) => {
-      await login({ email, password })
-      tokenManager.initialize() // Start auto-refresh
+    user: store.user,
+    isLoading: store.isLoading,
+    isInitialized: store.isInitialized,
+    isAuthenticated: !!store.user,
+    error: store.error,
+
+    // Actions with routing
+    login: async (emailOrUsername: string, password: string) => {
+      const user = await store.login({ emailOrUsername, password })
+      tokenManager.start() // Start refresh timer after login
       router.push('/feed')
+      return user
     },
-    
-    register: async (email: string, password: string, username: string, name: string) => {
-      await register({ email, password, username, name })
-      router.push('/verify-otp')
+
+    register: async (email: string, username: string, password: string, name: string) => {
+      await store.register({ email, username, password, name })
+      router.push('/verify-otp?email=' + encodeURIComponent(email))
     },
-    
+
     verifyOTP: async (email: string, otp: string) => {
-      await verifyOTP({ email, otp })
-      tokenManager.initialize() // Start auto-refresh
+      const user = await store.verifyOTP({ email, otp })
+      tokenManager.start() // Start refresh timer after verification
       router.push('/feed')
+      return user
     },
-    
+
     logout: async () => {
-      tokenManager.destroy() // Stop auto-refresh
-      await logout()
-    },
-    
-    updateUser,
-  }
-}
-
-export const useRequireAuth = () => {
-  const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuth()
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+      tokenManager.stop() // Stop refresh timer
+      await store.logout()
       router.push('/login')
-    }
-  }, [isAuthenticated, isLoading, router])
+    },
 
-  return { isAuthenticated, isLoading }
+    // Direct state setters
+    setUser: store.setUser,
+    setError: store.setError,
+  }
 }

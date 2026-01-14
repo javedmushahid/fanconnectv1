@@ -1,21 +1,16 @@
-
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
-import { tokenStorage } from '@/lib/utils/storage'
-import { tokenManager } from '@/lib/auth/token-manager'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
-// Create axios instance
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
   timeout: 30000,
-  withCredentials: true, // Send cookies
 })
 
-// Request queue for pending requests during token refresh
 interface QueueItem {
   resolve: (value?: unknown) => void
   reject: (reason?: unknown) => void
@@ -24,40 +19,17 @@ interface QueueItem {
 let isRefreshing = false
 let requestQueue: QueueItem[] = []
 
-const processQueue = (error: Error | null = null, token: string | null = null) => {
+const processQueue = (error: Error | null = null) => {
   requestQueue.forEach((promise) => {
     if (error) {
       promise.reject(error)
     } else {
-      promise.resolve(token)
+      promise.resolve()
     }
   })
-
   requestQueue = []
 }
 
-// Request interceptor - Add access token
-apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
-    // Skip auth for refresh token endpoint
-    if (config.url?.includes('/auth/refresh-token')) {
-      return config
-    }
-
-    // Get valid token (auto-refreshes if needed)
-    const token = await tokenManager.getValidAccessToken()
-
-    // Add token to header if not using cookies
-    if (token && !tokenStorage.isUsingCookies() && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Response interceptor - Handle 401 errors
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -69,28 +41,20 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Handle 401 Unauthorized
+    // Handle 401
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Avoid infinite loops
+      // Don't retry refresh endpoint
       if (originalRequest.url?.includes('/auth/refresh-token')) {
-        tokenStorage.clearTokens()
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
+        console.log('[API] Refresh endpoint returned 401')
         return Promise.reject(error)
       }
 
-      // If already refreshing, queue this request
+      // Queue concurrent requests
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           requestQueue.push({ resolve, reject })
         })
-          .then((token) => {
-            if (originalRequest.headers && token) {
-              originalRequest.headers.Authorization = `Bearer ${token}`
-            }
-            return apiClient(originalRequest)
-          })
+          .then(() => apiClient(originalRequest))
           .catch((err) => Promise.reject(err))
       }
 
@@ -98,31 +62,25 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        console.log('[API Client] 401 error, refreshing token...')
+        console.log('[API] 401 - Attempting refresh...')
 
-        // Refresh token
-        const newToken = await tokenManager.refreshAccessToken()
-
-        // Update original request
-        if (originalRequest.headers && newToken) {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-        }
-
-        // Process queued requests
-        processQueue(null, newToken)
-
-        // Retry original request
-        return apiClient(originalRequest)
-      } catch (refreshError) {
-        // Refresh failed, logout
-        processQueue(refreshError as Error, null)
-        tokenStorage.clearTokens()
+        // Import authAPI dynamically to avoid circular dependency
+        const { authAPI } = await import('./endpoints/auth')
+        await authAPI.refreshToken()
         
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
+        console.log('[API] ✅ Refreshed, retrying request')
 
+        processQueue()
+        return apiClient(originalRequest)
+        
+      } catch (refreshError) {
+        console.error('[API] Refresh failed')
+        
+        processQueue(refreshError as Error)
+        
+        // Don't redirect here - let middleware handle it
         return Promise.reject(refreshError)
+        
       } finally {
         isRefreshing = false
       }
