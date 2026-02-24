@@ -5,6 +5,7 @@ import { useAuth } from './use-auth'
 import { socketManager } from '@/lib/messaging/socket-manager'
 import { messagingAPI, Message } from '@/lib/api/endpoints/messaging'
 import { followsAPI, FollowUser } from '@/lib/api/endpoints/follows'
+import { useMessageStore } from '@/store/message.store'
 import { toast } from 'sonner'
 
 /**
@@ -29,6 +30,7 @@ export function useMessaging() {
   const [loadingFollowing, setLoadingFollowing] = useState(false)
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const { fetchUnreadCount } = useMessageStore()
 
   /**
    * Fetch followers
@@ -201,6 +203,20 @@ export function useMessaging() {
           })
         }
       })
+
+      // Mark as read: use the last message from the other user
+      const lastReceivedMsg = [...conversationMessages]
+        .reverse()
+        .find(msg => msg.senderId !== currentUser?.id)
+
+      if (lastReceivedMsg) {
+        try {
+          await messagingAPI.markAsRead(conversation.id, lastReceivedMsg.id)
+        } catch {
+          // non-critical
+        }
+        fetchUnreadCount()
+      }
     } catch (error) {
       console.error('Failed to load conversation:', error)
       toast.error('Failed to load conversation')

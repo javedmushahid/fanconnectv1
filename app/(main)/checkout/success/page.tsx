@@ -1,5 +1,5 @@
-import SuccessPage from '@/components/subscription/success-page'
+import SuccessClientWrapper from "./success-client-wrapper";
 
 export default function CheckoutSuccessPage() {
-  return <SuccessPage />
+  return <SuccessClientWrapper />;
 }

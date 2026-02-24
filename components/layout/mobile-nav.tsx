@@ -2,17 +2,19 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Compass, Heart, User, BarChart3 } from 'lucide-react'
+import { Home, Compass, Heart, User, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMessageStore } from '@/store/message.store'
 
 export default function MobileNav() {
   const pathname = usePathname()
+  const messageUnreadCount = useMessageStore((s) => s.unreadCount)
 
   const navItems = [
     { icon: Home, label: 'Home', href: '/feed' },
     { icon: Compass, label: 'Explore', href: '/explore' },
+    { icon: MessageCircle, label: 'Messages', href: '/messages' },
     { icon: Heart, label: 'Subs', href: '/subscriptions' },
-    { icon: BarChart3, label: 'Analytics', href: '/analytics/overview' },
     { icon: User, label: 'Profile', href: '/janedoe' },
   ]
 
@@ -22,6 +24,8 @@ export default function MobileNav() {
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href)
+          const isMessages = item.href === '/messages'
+          const showBadge = isMessages && messageUnreadCount > 0
 
           return (
             <Link
@@ -34,7 +38,14 @@ export default function MobileNav() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className="h-5 w-5" />
+              <div className="relative">
+                <Icon className="h-5 w-5" />
+                {showBadge && (
+                  <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-1 text-[9px] font-bold text-white leading-none">
+                    {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           )

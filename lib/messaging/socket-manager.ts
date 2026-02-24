@@ -2,13 +2,14 @@ import { io, Socket } from 'socket.io-client'
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
 
-export type SocketEvent = 
+export type SocketEvent =
   | 'message:new'
   | 'message:status'
   | 'typing:start'
   | 'typing:stop'
   | 'user:online'
   | 'user:offline'
+  | 'notification:new'
 
 export type SocketEmitEvent =
   | 'message:sent'
@@ -26,6 +27,7 @@ class SocketManager {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private isManualDisconnect = false
+  private pendingListeners: Array<{ event: SocketEvent; callback: (data: any) => void }> = []
 
   /**
    * Connect to socket server
@@ -49,6 +51,12 @@ class SocketManager {
     })
 
     this.setupConnectionHandlers()
+
+    // Flush any listeners registered before connect() was called
+    for (const { event, callback } of this.pendingListeners) {
+      this.socket.on(event, callback)
+    }
+    this.pendingListeners = []
 
     return this.socket
   }
@@ -101,7 +109,7 @@ class SocketManager {
    */
   on(event: SocketEvent, callback: (data: any) => void) {
     if (!this.socket) {
-      console.error('[SocketManager] Socket not initialized')
+      this.pendingListeners.push({ event, callback })
       return
     }
 
@@ -112,6 +120,11 @@ class SocketManager {
    * Remove socket event listener
    */
   off(event: SocketEvent, callback?: (data: any) => void) {
+    // Remove from pending queue if socket not yet initialized
+    this.pendingListeners = this.pendingListeners.filter(
+      l => !(l.event === event && (!callback || l.callback === callback))
+    )
+
     if (!this.socket) return
 
     if (callback) {

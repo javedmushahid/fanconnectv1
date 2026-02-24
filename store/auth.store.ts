@@ -21,12 +21,12 @@ export const useAuthStore = create<AuthStore>()(
       // Login action
       login: async (credentials: LoginCredentials) => {
         set({ isLoading: true, error: null })
-        
+
         try {
-          const user = await authAPI.login(credentials)
-          set({ user, isLoading: false })
+          const response = await authAPI.login(credentials)
+          set({ user: response.user, isLoading: false })
           toast.success('Login successful!')
-          return user
+          return response.user
         } catch (error: any) {
           const message = error.response?.data?.message || 'Login failed'
           set({ error: message, isLoading: false })
@@ -40,9 +40,9 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const message = await authAPI.register(credentials)
+          const response = await authAPI.register(credentials)
           set({ isLoading: false })
-          toast.success(message)
+          toast.success(response.message)
         } catch (error: any) {
           const message = error.response?.data?.message || 'Registration failed'
           set({ error: message, isLoading: false })
@@ -56,10 +56,10 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const user = await authAPI.verifyOTP(payload)
-          set({ user, isLoading: false })
+          const response = await authAPI.verifyOTP(payload)
+          set({ user: response.user, isLoading: false })
           toast.success('Email verified successfully!')
-          return user
+          return response.user
         } catch (error: any) {
           const message = error.response?.data?.message || 'OTP verification failed'
           set({ error: message, isLoading: false })

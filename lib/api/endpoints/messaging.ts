@@ -71,4 +71,13 @@ export const messagingAPI = {
   markAsRead: async (conversationId: string, messageId: string): Promise<void> => {
     await apiClient.post(`/messages/conversations/${conversationId}/read`, { messageId })
   },
+
+  /**
+   * GET /messages/unread-count
+   * Get total unread message count across all conversations
+   */
+  getUnreadCount: async (): Promise<number> => {
+    const { data } = await apiClient.get('/messages/unread-count')
+    return data.data.count
+  },
 }

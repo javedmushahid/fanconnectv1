@@ -4,6 +4,8 @@ import MobileNav from '@/components/layout/mobile-nav'
 import FloatingActionButton from '@/components/layout/floating-action-button'
 import ScrollToTop from '@/components/layout/scroll-to-top'
 import InstallPrompt from '@/components/pwa/install-prompt'
+import NotificationsInit from '@/components/notifications/notifications-init'
+import MessagesInit from '@/components/messages/messages-init'
 
 export default function MainLayout({
   children,
@@ -11,7 +13,9 @@ export default function MainLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden pb-16 lg:pb-0">
+    <div className="min-h-screen bg-background pb-16 lg:pb-0">
+      <NotificationsInit />
+      <MessagesInit />
       <Navbar />
       <div className="flex overflow-x-hidden">
         <Sidebar />

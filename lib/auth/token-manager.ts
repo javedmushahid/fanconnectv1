@@ -15,7 +15,7 @@ class TokenManager {
       return
     }
 
-    console.log('[TokenManager] Starting (every 50s)')
+    console.log('[TokenManager] Starting (every 12m)')
     this.isRunning = true
     
     this.refreshInterval = setInterval(async () => {

@@ -2,15 +2,17 @@
 'use client'
 
 import Link from 'next/link'
-import { Home, Compass, Heart, Bookmark, Settings, DollarSign, Users, Upload, TrendingUp, Film, BarChart3 } from 'lucide-react'
+import { Home, Compass, Heart, Bookmark, Settings, DollarSign, Users, Upload, TrendingUp, Film, BarChart3, MessageCircle } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { useMessageStore } from '@/store/message.store'
 
 export default function Sidebar() {
   const pathname = usePathname()
-  
+  const messageUnreadCount = useMessageStore((s) => s.unreadCount)
+
   // Set this to true to show Creator Studio after using states and other things
   const isCreator = true
 
@@ -18,6 +20,7 @@ export default function Sidebar() {
     { icon: Home, label: 'Feed', href: '/feed' },
     { icon: Film, label: 'Stories', href: '/stories' },
     { icon: Compass, label: 'Explore', href: '/explore' },
+    { icon: MessageCircle, label: 'Messages', href: '/messages' },
     { icon: Bookmark, label: 'Saved', href: '/saved' },
     { icon: Heart, label: 'Subscriptions', href: '/subscriptions' },
     { icon: Settings, label: 'Settings', href: '/settings' },
@@ -39,6 +42,8 @@ export default function Sidebar() {
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
+            const isMessages = item.href === '/messages'
+            const showBadge = isMessages && messageUnreadCount > 0
 
             return (
               <Link key={item.href} href={item.href}>
@@ -50,7 +55,12 @@ export default function Sidebar() {
                   )}
                 >
                   <Icon className="mr-3 h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium flex-1">{item.label}</span>
+                  {showBadge && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-1 text-[11px] font-semibold text-white">
+                      {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                    </span>
+                  )}
                 </Button>
               </Link>
             )

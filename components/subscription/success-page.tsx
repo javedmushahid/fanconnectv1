@@ -1,96 +1,153 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, Sparkles, Download, User, Mail } from 'lucide-react'
-import Link from 'next/link'
-import confetti from 'canvas-confetti'
+import { useEffect, useRef, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle2, Sparkles, User, Check } from "lucide-react";
+import Link from "next/link";
+import confetti from "canvas-confetti";
+import { subscriptionsAPI } from "@/lib/api/endpoints/subscriptions";
+import { format } from "date-fns";
+import { toast } from "sonner";
+
+interface VerifiedSub {
+  status: string;
+  currentPeriodEnd: string;
+  creator: {
+    id: string;
+    username: string;
+    name: string;
+    avatar: string | null;
+  };
+  tier: { name: string; price: string; benefits: string[] };
+}
 
 export default function SuccessPage() {
-  const [showContent, setShowContent] = useState(false)
-  const searchParams = useSearchParams()
-  
-  // Get details from URL params (would come from payment processor in production)
-  const tier = searchParams.get('tier') || 'Premium'
-  const creator = searchParams.get('creator') || 'janedoe'
-  const amount = searchParams.get('amount') || '19.99'
-  const orderId = `ORD-${Date.now()}`
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sub, setSub] = useState<VerifiedSub | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showContent, setShowContent] = useState(false);
 
+  const verifiedRef = useRef(false);
+
+  /* --------------------------------------------------
+     Get session_id from URL (Stripe redirect safe)
+  -------------------------------------------------- */
   useEffect(() => {
-    // Trigger confetti
-    const duration = 3 * 1000
-    const animationEnd = Date.now() + duration
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+    if (typeof window === "undefined") return;
 
-    function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min
-    }
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("session_id");
 
-    const interval = setInterval(function() {
-      const timeLeft = animationEnd - Date.now()
+    console.log("✅ sessionId:", id);
+    setSessionId(id);
+  }, []);
+
+  /* --------------------------------------------------
+     Confetti animation
+  -------------------------------------------------- */
+  useEffect(() => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const defaults = {
+      startVelocity: 30,
+      spread: 360,
+      ticks: 60,
+      zIndex: 0,
+    };
+
+    const interval = setInterval(() => {
+      const timeLeft = end - Date.now();
 
       if (timeLeft <= 0) {
-        return clearInterval(interval)
+        clearInterval(interval);
+        return;
       }
 
-      const particleCount = 50 * (timeLeft / duration)
-      
+      const count = 50 * (timeLeft / duration);
+
       confetti({
         ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-      })
+        particleCount: count,
+        origin: { x: Math.random() * 0.3 + 0.1, y: Math.random() - 0.2 },
+      });
+
       confetti({
         ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-      })
-    }, 250)
+        particleCount: count,
+        origin: { x: Math.random() * 0.3 + 0.7, y: Math.random() - 0.2 },
+      });
+    }, 250);
 
-    // Show content after animation
-    setTimeout(() => setShowContent(true), 500)
+    setTimeout(() => setShowContent(true), 500);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleDownloadReceipt = () => {
-    // Mock receipt download
-    const receiptData = `
-FanConnect Receipt
-==================
-Order ID: ${orderId}
-Date: ${new Date().toLocaleDateString()}
-Tier: ${tier}
-Creator: @${creator}
-Amount: $${amount}
-==================
-Thank you for your purchase!
-    `
-    const blob = new Blob([receiptData], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `receipt-${orderId}.txt`
-    a.click()
-  }
+  /* --------------------------------------------------
+     Verify Stripe Checkout Session
+  -------------------------------------------------- */
+  useEffect(() => {
+    if (!sessionId) {
+      setLoading(false);
+      return;
+    }
+
+    if (verifiedRef.current) return;
+    verifiedRef.current = true;
+
+    const verifySubscription = async () => {
+      try {
+        const { subscription } = await subscriptionsAPI.verifyCheckout(
+          sessionId
+        );
+
+        setSub(subscription);
+      } catch (err: any) {
+        console.error("verifyCheckout failed:", err?.response?.data || err);
+        toast.error(
+          "Could not confirm subscription. Please check your subscriptions page."
+        );
+        setSub(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifySubscription();
+  }, [sessionId]);
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <Card className="max-w-2xl w-full">
         <CardContent className="pt-12 pb-8 text-center">
-          {/* Success Animation */}
+          {/* Success Icon */}
           <div className="mb-8 flex justify-center">
-            <div className={`relative transition-all duration-1000 ${showContent ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
+            <div
+              className={`relative transition-all duration-1000 ${
+                showContent ? "scale-100 opacity-100" : "scale-0 opacity-0"
+              }`}
+            >
               <div className="absolute inset-0 bg-green-500 blur-3xl opacity-20 animate-pulse" />
-              <CheckCircle2 className="relative h-32 w-32 text-green-500" strokeWidth={1.5} />
+              <CheckCircle2
+                className="relative h-32 w-32 text-green-500"
+                strokeWidth={1.5}
+              />
             </div>
           </div>
 
-          {/* Success Message */}
-          <div className={`space-y-4 transition-all duration-1000 delay-300 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          {/* Heading */}
+          <div
+            className={`space-y-4 transition-all duration-1000 delay-300 ${
+              showContent
+                ? "translate-y-0 opacity-100"
+                : "translate-y-4 opacity-0"
+            }`}
+          >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 rounded-full">
               <Sparkles className="h-4 w-4 text-green-600" />
               <span className="text-sm font-medium text-green-700 dark:text-green-300">
@@ -99,131 +156,133 @@ Thank you for your purchase!
             </div>
 
             <h1 className="text-4xl font-bold">Welcome to the Community!</h1>
-            
+
             <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Your subscription is now active. Get ready to unlock exclusive content and connect with your favorite creator!
+              Your subscription is now active. Enjoy exclusive content from your
+              favourite creator!
             </p>
           </div>
 
           {/* Subscription Details */}
-          <div className={`mt-8 transition-all duration-1000 delay-500 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <div className="mt-8">
             <Card className="bg-muted/50 border-2">
               <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">Subscription Details</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Order ID</span>
-                    <span className="font-mono font-semibold">{orderId}</span>
+                {loading ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 justify-center">
+                      <Skeleton className="h-14 w-14 rounded-full" />
+                      <div className="space-y-1.5 text-left">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subscription Tier</span>
-                    <span className="font-semibold capitalize">{tier}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Creator</span>
-                    <span className="font-semibold">@{creator}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount Paid</span>
-                    <span className="font-semibold">${amount}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Billing Date</span>
-                    <span className="font-semibold">{new Date().toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Next Billing</span>
-                    <span className="font-semibold">
-                      {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+                ) : sub ? (
+                  <>
+                    {/* Creator */}
+                    <div className="flex items-center gap-3 justify-center mb-5">
+                      <Avatar className="h-14 w-14 border-2 border-primary/20">
+                        <AvatarImage src={sub.creator.avatar || undefined} />
+                        <AvatarFallback>
+                          {sub.creator.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="text-left">
+                        <p className="font-bold text-base">
+                          {sub.creator.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          @{sub.creator.username}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Plan Details */}
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Plan</span>
+                        <span className="font-semibold">
+                          {sub.tier.name} — $
+                          {parseFloat(sub.tier.price).toFixed(2)}/mo
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status</span>
+                        <span className="font-semibold text-green-600">
+                          {sub.status}
+                        </span>
+                      </div>
+
+                      {sub.currentPeriodEnd && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Next billing
+                          </span>
+                          <span className="font-semibold">
+                            {format(
+                              new Date(sub.currentPeriodEnd),
+                              "MMM d, yyyy"
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Benefits */}
+                    {sub.tier.benefits?.length > 0 && (
+                      <div className="mt-4 pt-4 border-t text-sm text-left">
+                        <p className="text-muted-foreground mb-2 font-medium">
+                          What you get
+                        </p>
+                        <ul className="space-y-1.5">
+                          {sub.tier.benefits.map((benefit, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <Check className="h-4 w-4 text-green-600 mt-0.5" />
+                              <span>{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Subscription confirmed. Details will appear shortly.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Email Confirmation */}
-          <div className={`mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-all duration-1000 delay-600 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-            <div className="flex items-start gap-3">
-              <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-left text-sm">
-                <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                  Email Confirmation Sent
-                </p>
-                <p className="text-blue-700 dark:text-blue-200">
-                  We've sent a confirmation email with your receipt and subscription details to your registered email address.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Actions */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3 justify-center mt-8">
+            {sub && (
+              <Link href={`/${sub.creator.username}`}>
+                <Button size="lg" className="w-full sm:w-auto gap-2">
+                  <User className="h-4 w-4" />
+                  View Profile
+                </Button>
+              </Link>
+            )}
 
-          {/* What's Next */}
-          <div className={`mt-8 p-6 bg-muted/50 rounded-lg text-left max-w-md mx-auto transition-all duration-1000 delay-700 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-            <h3 className="font-semibold mb-3">What's Next?</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Access exclusive content immediately</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Join the community chat and introduce yourself</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Participate in exclusive live streams and Q&As</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Manage your subscription in settings anytime</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Action Buttons */}
-          <div className={`flex flex-col sm:flex-row gap-3 justify-center mt-8 transition-all duration-1000 delay-800 ${showContent ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-            <Link href={`/${creator}`}>
-              <Button size="lg" className="w-full sm:w-auto gap-2">
-                <User className="h-4 w-4" />
-                View Profile
+            <Link href="/subscriptions">
+              <Button variant="outline" size="lg">
+                Manage Subscriptions
               </Button>
             </Link>
-            <Button
-              onClick={handleDownloadReceipt}
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Receipt
-            </Button>
           </div>
 
           <Separator className="my-6" />
 
-          {/* Secondary Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/feed">
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                Go to Feed
-              </Button>
-            </Link>
-            <Link href="/subscriptions">
-              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                View All Subscriptions
-              </Button>
-            </Link>
-          </div>
-
-          {/* Support */}
-          <p className="mt-8 text-sm text-muted-foreground">
-            Need help?{' '}
-            <Link href="/support" className="text-primary hover:underline">
-              Contact support
-            </Link>
-          </p>
+          <Link href="/feed">
+            <Button variant="ghost" size="sm">
+              Go to Feed
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

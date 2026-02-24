@@ -1,5 +1,10 @@
-import SubscriptionTiers from '@/components/subscription/subscription-tiers'
+import SubscriptionTiers from "@/components/subscription/subscription-tiers";
 
-export default function SubscribePage({ params }: { params: { creatorId: string } }) {
-  return <SubscriptionTiers creatorId={params.creatorId} />
+export default async function SubscribePage({
+  params,
+}: {
+  params: Promise<{ creatorId: string }>;
+}) {
+  const { creatorId } = await params;
+  return <SubscriptionTiers creatorId={creatorId} />;
 }
