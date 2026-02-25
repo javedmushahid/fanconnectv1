@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Heart, MoreVertical, Reply, Send } from 'lucide-react'
+import { Heart, MoreVertical, Reply, Send, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,86 +12,134 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { postsAPI, ApiComment } from '@/lib/api/endpoints/posts'
+import { useAuth } from '@/hooks/use-auth'
 
-interface Comment {
-  id: string
-  userId: string
-  username: string
-  displayName: string
-  avatar: string
-  content: string
-  likes: number
-  isLiked: boolean
-  createdAt: string
-  replies?: Comment[]
+const formatRelativeTime = (dateStr: string): string => {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  return `${Math.floor(diffHours / 24)}d ago`
 }
 
 interface CommentSectionProps {
   postId: string
-  initialComments?: Comment[]
+  onCommentAdded?: () => void
+  onCommentDeleted?: () => void
 }
 
-export default function CommentSection({ postId, initialComments = [] }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>(initialComments)
+export default function CommentSection({ postId, onCommentAdded, onCommentDeleted }: CommentSectionProps) {
+  const { user } = useAuth()
+  const [comments, setComments] = useState<ApiComment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  const [replySubmitting, setReplySubmitting] = useState(false)
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return
-
-    const comment: Comment = {
-      id: Date.now().toString(),
-      userId: 'current-user',
-      username: 'janedoe',
-      displayName: 'Jane Doe',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User',
-      content: newComment,
-      likes: 0,
-      isLiked: false,
-      createdAt: 'Just now',
-      replies: [],
+  useEffect(() => {
+    let cancelled = false
+    const fetchComments = async () => {
+      try {
+        const { comments: fetched } = await postsAPI.getComments(postId)
+        if (!cancelled) setComments(fetched)
+      } catch {
+        // silently fail — empty state shown
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
+    fetchComments()
+    return () => { cancelled = true }
+  }, [postId])
 
-    setComments([comment, ...comments])
-    setNewComment('')
+  const handleAddComment = async () => {
+    if (!newComment.trim() || submitting) return
+    setSubmitting(true)
+    try {
+      const created = await postsAPI.addComment(postId, newComment.trim())
+      const withUser = {
+        ...created,
+        user: created.user ?? {
+          id: user?.id ?? '',
+          username: user?.username ?? '',
+          name: user?.name ?? '',
+          avatar: user?.avatar ?? null,
+        },
+      }
+      setComments((prev) => [withUser, ...prev])
+      setNewComment('')
+      onCommentAdded?.()
+    } catch {
+      // keep input so user can retry
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleLikeComment = (commentId: string) => {
-    setComments(comments.map(comment => 
-      comment.id === commentId 
-        ? { 
-            ...comment, 
-            isLiked: !comment.isLiked,
-            likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1
-          }
-        : comment
-    ))
+  const handleAddReply = async (commentId: string) => {
+    if (!replyText.trim() || replySubmitting) return
+    setReplySubmitting(true)
+    try {
+      const created = await postsAPI.addComment(postId, replyText.trim(), commentId)
+      const withUser = {
+        ...created,
+        user: created.user ?? {
+          id: user?.id ?? '',
+          username: user?.username ?? '',
+          name: user?.name ?? '',
+          avatar: user?.avatar ?? null,
+        },
+      }
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, replies: [...(c.replies ?? []), withUser] }
+            : c
+        )
+      )
+      setReplyText('')
+      setReplyingTo(null)
+      onCommentAdded?.()
+    } catch {
+      // keep input so user can retry
+    } finally {
+      setReplySubmitting(false)
+    }
   }
 
-  const handleAddReply = (commentId: string) => {
-    if (!replyText.trim()) return
-
-    const reply: Comment = {
-      id: Date.now().toString(),
-      userId: 'current-user',
-      username: 'janedoe',
-      displayName: 'Jane Doe',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User',
-      content: replyText,
-      likes: 0,
-      isLiked: false,
-      createdAt: 'Just now',
+  const handleDeleteComment = async (commentId: string, parentId?: string | null) => {
+    try {
+      await postsAPI.deleteComment(commentId)
+      if (parentId) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === parentId
+              ? { ...c, replies: (c.replies ?? []).filter((r) => r.id !== commentId) }
+              : c
+          )
+        )
+      } else {
+        setComments((prev) => prev.filter((c) => c.id !== commentId))
+      }
+      onCommentDeleted?.()
+    } catch {
+      // ignore
     }
+  }
 
-    setComments(comments.map(comment =>
-      comment.id === commentId
-        ? { ...comment, replies: [...(comment.replies || []), reply] }
-        : comment
-    ))
-
-    setReplyText('')
-    setReplyingTo(null)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-6 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+        <span className="text-sm">Loading comments...</span>
+      </div>
+    )
   }
 
   return (
@@ -99,8 +147,8 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
       {/* Add Comment */}
       <div className="flex gap-3">
         <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" />
-          <AvatarFallback>JD</AvatarFallback>
+          <AvatarImage src={user?.avatar ?? ''} />
+          <AvatarFallback>{user?.name?.[0] ?? 'U'}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-2">
           <Textarea
@@ -108,15 +156,22 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             className="min-h-[80px] resize-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAddComment()
+            }}
           />
           <div className="flex justify-end">
-            <Button 
+            <Button
               onClick={handleAddComment}
-              disabled={!newComment.trim()}
+              disabled={!newComment.trim() || submitting}
               size="sm"
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
-              <Send className="h-4 w-4 mr-2" />
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
               Comment
             </Button>
           </div>
@@ -125,77 +180,67 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
 
       {/* Comments List */}
       <div className="space-y-4">
-        {comments.map((comment) => (
-          <div key={comment.id} className="space-y-3">
+        {comments.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No comments yet. Be the first!
+          </p>
+        )}
+
+        {comments.map((comment,index) => (
+          <div key={index} className="space-y-3">
             {/* Main Comment */}
             <div className="flex gap-3 group">
               <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarImage src={comment.avatar} />
-                <AvatarFallback>{comment.displayName[0]}</AvatarFallback>
+                <AvatarImage src={comment.user.avatar ?? ''} />
+                <AvatarFallback>{comment.user.name[0]}</AvatarFallback>
               </Avatar>
-              
+
               <div className="flex-1 space-y-2">
-                {/* Comment Header */}
                 <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm hover:underline cursor-pointer">
-                        {comment.displayName}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        @{comment.username}
-                      </span>
-                      <span className="text-xs text-muted-foreground">·</span>
-                      <span className="text-xs text-muted-foreground">
-                        {comment.createdAt}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm hover:underline cursor-pointer">
+                      {comment.user.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">@{comment.user.username}</span>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelativeTime(comment.createdAt)}
+                    </span>
                   </div>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="cursor-pointer">Report</DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer text-destructive">
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+
+                  {(user?.id === comment.authorId) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive"
+                          onClick={() => handleDeleteComment(comment.id)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
 
-                {/* Comment Content */}
                 <p className="text-sm leading-relaxed">{comment.content}</p>
 
-                {/* Comment Actions */}
                 <div className="flex items-center gap-4">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={cn(
-                      "h-8 px-2 gap-1 hover:bg-red-50 dark:hover:bg-red-950",
-                      comment.isLiked && "text-red-500"
-                    )}
-                    onClick={() => handleLikeComment(comment.id)}
-                  >
-                    <Heart className={cn("h-4 w-4", comment.isLiked && "fill-red-500")} />
-                    {comment.likes > 0 && (
-                      <span className="text-xs">{comment.likes}</span>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
                     className="h-8 px-2 gap-1 hover:bg-blue-50 dark:hover:bg-blue-950"
-                    onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                    onClick={() =>
+                      setReplyingTo(replyingTo === comment.id ? null : comment.id)
+                    }
                   >
                     <Reply className="h-4 w-4" />
                     <span className="text-xs">Reply</span>
@@ -206,12 +251,12 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
                 {replyingTo === comment.id && (
                   <div className="flex gap-2 mt-3 animate-in slide-in-from-top">
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" />
-                      <AvatarFallback>JD</AvatarFallback>
+                      <AvatarImage src={user?.avatar ?? ''} />
+                      <AvatarFallback>{user?.name?.[0] ?? 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-2">
                       <Textarea
-                        placeholder={`Reply to @${comment.username}...`}
+                        placeholder={`Reply to @${comment.user.username}...`}
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         className="min-h-[60px] resize-none text-sm"
@@ -231,9 +276,12 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
                         <Button
                           size="sm"
                           onClick={() => handleAddReply(comment.id)}
-                          disabled={!replyText.trim()}
+                          disabled={!replyText.trim() || replySubmitting}
                           className="bg-gradient-to-r from-blue-600 to-purple-600"
                         >
+                          {replySubmitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : null}
                           Reply
                         </Button>
                       </div>
@@ -247,34 +295,48 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
                     {comment.replies.map((reply) => (
                       <div key={reply.id} className="flex gap-3 group">
                         <Avatar className="h-8 w-8 flex-shrink-0">
-                          <AvatarImage src={reply.avatar} />
-                          <AvatarFallback>{reply.displayName[0]}</AvatarFallback>
+                          <AvatarImage src={reply.user.avatar ?? ''} />
+                          <AvatarFallback>{reply.user.name[0]}</AvatarFallback>
                         </Avatar>
-                        
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm hover:underline cursor-pointer">
-                              {reply.displayName}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              @{reply.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">·</span>
-                            <span className="text-xs text-muted-foreground">
-                              {reply.createdAt}
-                            </span>
+
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm hover:underline cursor-pointer">
+                                {reply.user.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                @{reply.user.username}
+                              </span>
+                              <span className="text-xs text-muted-foreground">·</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatRelativeTime(reply.createdAt)}
+                              </span>
+                            </div>
+
+                            {user?.id === reply.authorId && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <MoreVertical className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-destructive"
+                                    onClick={() => handleDeleteComment(reply.id, comment.id)}
+                                  >
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
                           <p className="text-sm leading-relaxed">{reply.content}</p>
-                          
-                          <div className="flex items-center gap-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 gap-1 hover:bg-red-50 dark:hover:bg-red-950"
-                            >
-                              <Heart className="h-3 w-3" />
-                            </Button>
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -285,13 +347,6 @@ export default function CommentSection({ postId, initialComments = [] }: Comment
           </div>
         ))}
       </div>
-
-      {/* Load More */}
-      {comments.length > 0 && (
-        <Button variant="ghost" className="w-full" size="sm">
-          Load more comments
-        </Button>
-      )}
     </div>
   )
 }

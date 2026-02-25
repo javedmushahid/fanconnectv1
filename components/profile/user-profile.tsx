@@ -41,7 +41,18 @@ import {
   ProfileMoment,
 } from "@/lib/api/endpoints/users";
 import { followsAPI } from "@/lib/api/endpoints/follows";
+import { subscriptionsAPI } from "@/lib/api/endpoints/subscriptions";
 import { useAuthStore } from "@/store/auth.store";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UserProfileProps {
   username: string;
@@ -282,10 +293,13 @@ export default function UserProfile({ username }: UserProfileProps) {
   const [notFound, setNotFound] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [isCanceling, setIsCanceling] = useState(false);
 
   const profile = profileData?.user ?? null;
   const isOwnProfile = currentUser?.username === username;
-
+  console.log("profileData", profile);
   useEffect(() => {
     setIsLoading(true);
     setNotFound(false);
@@ -337,6 +351,39 @@ export default function UserProfile({ username }: UserProfileProps) {
     toast.success("Profile link copied!");
   };
 
+  const handleSubscribedClick = async () => {
+    if (!profile) return;
+    if (!subscriptionId) {
+      try {
+        const { subscription } = await subscriptionsAPI.checkSubscription(profile.id);
+        if (subscription?.id) setSubscriptionId(subscription.id);
+      } catch {
+        toast.error("Could not load subscription details.");
+        return;
+      }
+    }
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!subscriptionId || !profileData) return;
+    setIsCanceling(true);
+    try {
+      const { endsAt } = await subscriptionsAPI.cancelSubscription(subscriptionId);
+      setProfileData({
+        ...profileData,
+        subscriptionCancelAtPeriodEnd: true,
+        subscriptionEndsAt: endsAt,
+      });
+      toast.success("Subscription will end at the end of the billing period.");
+    } catch {
+      toast.error("Failed to cancel subscription.");
+    } finally {
+      setIsCanceling(false);
+      setShowCancelDialog(false);
+    }
+  };
+
   if (isLoading) return <ProfileSkeleton />;
 
   if (notFound || !profile || !profileData) {
@@ -355,7 +402,7 @@ export default function UserProfile({ username }: UserProfileProps) {
   }
 
   const isCreator = profile.role === "CREATOR" || profile.role === "ADMIN";
-  console.log("isCreator", profile);
+  console.log("profileData", profileData);
   const joinedDate = (() => {
     try {
       return format(new Date(profile.createdAt), "MMMM yyyy");
@@ -487,13 +534,31 @@ export default function UserProfile({ username }: UserProfileProps) {
                     </Button>
 
                     {profileData.isSubscribed ? (
-                      <Button
-                        variant="outline"
-                        className="gap-2 border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                      >
-                        <Crown className="h-4 w-4" />
-                        Subscribed
-                      </Button>
+                      profileData.subscriptionCancelAtPeriodEnd ? (
+                        <div className="relative group">
+                          <Button
+                            variant="outline"
+                            className="gap-2 border-orange-400 text-orange-500 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 cursor-default"
+                          >
+                            <Crown className="h-4 w-4" />
+                            Canceling
+                          </Button>
+                          {profileData.subscriptionEndsAt && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 text-xs bg-popover text-popover-foreground border rounded-md shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                              Access until {format(new Date(profileData.subscriptionEndsAt), "MMM d, yyyy")}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="gap-2 border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                          onClick={handleSubscribedClick}
+                        >
+                          <Crown className="h-4 w-4" />
+                          Subscribed
+                        </Button>
+                      )
                     ) : (
                       <Link href={`/subscribe/${profile.id}`}>
                         <Button className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0">
@@ -604,6 +669,29 @@ export default function UserProfile({ username }: UserProfileProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll keep access until the end of your current billing period.
+              After that, you'll lose access to exclusive content from{" "}
+              <span className="font-medium text-foreground">{profile.name}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCanceling}>Keep Subscription</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelSubscription}
+              disabled={isCanceling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCanceling ? "Canceling…" : "Yes, Cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -22,6 +22,7 @@ export interface Post {
   price?: number
   likesCount: number
   commentsCount: number
+  isLiked?: boolean
   createdAt: string
 }
 

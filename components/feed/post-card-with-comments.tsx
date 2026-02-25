@@ -1,12 +1,11 @@
 'use client'
 
-import { Heart, MessageCircle, Bookmark, Share2, Lock, MoreVertical, Send } from 'lucide-react'
+import { Heart, MessageCircle, Bookmark, Share2, Lock, MoreVertical } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +17,7 @@ import { cn } from '@/lib/utils'
 import CommentSection from './comment-section'
 import ShareModal from './share-modal'
 import ImageLightbox from './image-lightbox'
+import { postsAPI } from '@/lib/api/endpoints/posts'
 
 interface PostCardProps {
   post: Post
@@ -25,73 +25,44 @@ interface PostCardProps {
 }
 
 export default function PostCardWithComments({ post, isSubscribed = false }: PostCardProps) {
-  const [liked, setLiked] = useState(false)
+  const [liked, setLiked] = useState(post.isLiked ?? false)
   const [saved, setSaved] = useState(false)
   const [likesCount, setLikesCount] = useState(post.likesCount)
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount)
   const [showComments, setShowComments] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showLightbox, setShowLightbox] = useState(false)
   const [showLikeAnimation, setShowLikeAnimation] = useState(false)
 
-  const handleLike = () => {
-    setLiked(!liked)
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1)
-    if (!liked) {
+  const handleLike = async () => {
+    const newLiked = !liked
+    // Optimistic update
+    setLiked(newLiked)
+    setLikesCount((c) => (newLiked ? c + 1 : c - 1))
+    if (newLiked) {
       setShowLikeAnimation(true)
       setTimeout(() => setShowLikeAnimation(false), 1000)
+    }
+    try {
+      if (newLiked) {
+        await postsAPI.likePost(post.id)
+      } else {
+        await postsAPI.unlikePost(post.id)
+      }
+    } catch {
+      // Revert on failure
+      setLiked(!newLiked)
+      setLikesCount((c) => (!newLiked ? c + 1 : c - 1))
     }
   }
 
   const handleDoubleClick = () => {
-    if (!liked) {
-      handleLike()
-    }
+    if (!liked) handleLike()
   }
 
   const handleImageClick = () => {
-    if (!post.isLocked || isSubscribed) {
-      setShowLightbox(true)
-    }
+    if (!post.isLocked || isSubscribed) setShowLightbox(true)
   }
-
-  // Mock comments
-  const mockComments = [
-    {
-      id: '1',
-      userId: '2',
-      username: 'fitness_fan',
-      displayName: 'Fitness Fan',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fan1',
-      content: 'This is so inspiring! Keep up the great work! 💪',
-      likes: 5,
-      isLiked: false,
-      createdAt: '1h ago',
-      replies: [
-        {
-          id: '2',
-          userId: '1',
-          username: 'jane_doe',
-          displayName: 'Jane Doe',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
-          content: 'Thank you so much! 🙏',
-          likes: 2,
-          isLiked: false,
-          createdAt: '30m ago',
-        }
-      ]
-    },
-    {
-      id: '3',
-      userId: '3',
-      username: 'workout_king',
-      displayName: 'Workout King',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=King',
-      content: "Love this routine! Can't wait to try it tomorrow!",
-      likes: 3,
-      isLiked: false,
-      createdAt: '2h ago',
-    }
-  ]
 
   return (
     <>
@@ -115,11 +86,9 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h4 className="font-semibold text-sm sm:text-base truncate hover:text-primary transition-colors cursor-pointer">
-                  {post.creator.displayName}
-                </h4>
-              </div>
+              <h4 className="font-semibold text-sm sm:text-base truncate hover:text-primary transition-colors cursor-pointer">
+                {post.creator.displayName}
+              </h4>
               <p className="text-xs text-muted-foreground truncate">
                 @{post.creator.username} · {post.createdAt}
               </p>
@@ -134,10 +103,7 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem className="cursor-pointer">Report</DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer">Hide</DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => setShowShareModal(true)}
-              >
+              <DropdownMenuItem className="cursor-pointer" onClick={() => setShowShareModal(true)}>
                 Share
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -155,8 +121,8 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
 
         {/* Media */}
         {post.mediaUrls && post.mediaUrls.length > 0 && (
-          <div 
-            className="relative bg-muted group cursor-pointer" 
+          <div
+            className="relative bg-muted group cursor-pointer"
             onDoubleClick={handleDoubleClick}
             onClick={handleImageClick}
           >
@@ -165,25 +131,18 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
                 <div className="absolute inset-0 opacity-20">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-pulse"></div>
                 </div>
-                
                 <div className="absolute inset-0 backdrop-blur-xl bg-black/60 flex flex-col items-center justify-center p-4 text-center z-10">
                   <div className="relative mb-6">
                     <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                     <Lock className="w-16 h-16 text-white relative z-10 drop-shadow-2xl" />
                   </div>
-                  <p className="text-white font-bold text-lg mb-2 drop-shadow-lg">
-                    🔒 Exclusive Content
-                  </p>
-                  <p className="text-gray-200 text-sm mb-4">
-                    Subscribe to unlock premium content
-                  </p>
+                  <p className="text-white font-bold text-lg mb-2 drop-shadow-lg">🔒 Exclusive Content</p>
+                  <p className="text-gray-200 text-sm mb-4">Subscribe to unlock premium content</p>
                   {post.price && (
-                    <p className="text-gray-300 text-xs mb-4">
-                      Or purchase for ${post.price}
-                    </p>
+                    <p className="text-gray-300 text-xs mb-4">Or purchase for ${post.price}</p>
                   )}
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -201,7 +160,6 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    {/* Zoom indicator on hover */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
                       <div className="bg-black/60 backdrop-blur-sm rounded-full p-3">
                         <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -238,49 +196,49 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
                 size="sm"
                 onClick={handleLike}
                 className={cn(
-                  "gap-2 px-2 sm:px-3 transition-all duration-300 hover:scale-110",
-                  liked && "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  'gap-2 px-2 sm:px-3 transition-all duration-300 hover:scale-110',
+                  liked && 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950'
                 )}
               >
-                <Heart 
+                <Heart
                   className={cn(
-                    "h-5 w-5 transition-all duration-300",
-                    liked && "fill-red-500 animate-pulse"
-                  )} 
+                    'h-5 w-5 transition-all duration-300',
+                    liked && 'fill-red-500 animate-pulse'
+                  )}
                 />
                 <span className="text-xs sm:text-sm font-semibold">{likesCount}</span>
               </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
+
+              <Button
+                variant="ghost"
+                size="sm"
                 className="gap-2 px-2 sm:px-3 hover:scale-110 transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-600"
                 onClick={() => setShowComments(!showComments)}
               >
                 <MessageCircle className="h-5 w-5" />
-                <span className="text-xs sm:text-sm">{post.commentsCount}</span>
+                <span className="text-xs sm:text-sm">{commentsCount}</span>
               </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
+
+              <Button
+                variant="ghost"
+                size="sm"
                 className="px-2 sm:px-3 hover:scale-110 transition-all duration-300 hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-600"
                 onClick={() => setShowShareModal(true)}
               >
                 <Share2 className="h-5 w-5" />
               </Button>
             </div>
-            
+
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSaved(!saved)}
               className={cn(
-                "transition-all duration-300 hover:scale-110",
-                saved && "text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                'transition-all duration-300 hover:scale-110',
+                saved && 'text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950'
               )}
             >
-              <Bookmark className={cn("h-5 w-5 transition-all", saved && "fill-blue-500")} />
+              <Bookmark className={cn('h-5 w-5 transition-all', saved && 'fill-blue-500')} />
             </Button>
           </div>
         </div>
@@ -289,7 +247,11 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
         {showComments && (
           <div className="border-t animate-in slide-in-from-top">
             <div className="p-4">
-              <CommentSection postId={post.id} initialComments={mockComments} />
+              <CommentSection
+                postId={post.id}
+                onCommentAdded={() => setCommentsCount((c) => c + 1)}
+                onCommentDeleted={() => setCommentsCount((c) => c - 1)}
+              />
             </div>
           </div>
         )}

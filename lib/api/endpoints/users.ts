@@ -75,6 +75,8 @@ export interface UserProfileData {
   user: ProfileUser
   isFollowing: boolean
   isSubscribed: boolean
+  subscriptionCancelAtPeriodEnd?: boolean
+  subscriptionEndsAt?: string | null
   posts: ProfilePost[]
   stories: ProfileStory[]
   moments: ProfileMoment[]

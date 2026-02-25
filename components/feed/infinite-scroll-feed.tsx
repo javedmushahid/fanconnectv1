@@ -6,93 +6,60 @@ import PostSkeleton from "./post-skeleton";
 import { Post } from "@/types";
 import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { postsAPI, FeedPost } from "@/lib/api/endpoints/posts";
+import { useAuth } from "@/hooks/use-auth";
 
-// Generate mock posts
-const generateMockPosts = (page: number): Post[] => {
-  const creators = [
-    {
-      id: "1",
-      email: "jane@example.com",
-      username: "jane_doe",
-      displayName: "Jane Doe",
-      bio: "Fitness enthusiast & wellness coach",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane",
-      banner: "",
-      role: "creator" as const,
-      isVerified: true,
-      createdAt: "2024-01-01",
-    },
-    {
-      id: "2",
-      email: "john@example.com",
-      username: "fitness_pro",
-      displayName: "Fitness Pro",
-      bio: "Professional trainer",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      banner: "",
-      role: "creator" as const,
-      isVerified: true,
-      createdAt: "2024-01-01",
-    },
-    {
-      id: "3",
-      email: "sarah@example.com",
-      username: "yoga_sarah",
-      displayName: "Sarah Miller",
-      bio: "Yoga instructor",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      banner: "",
-      role: "creator" as const,
-      isVerified: true,
-      createdAt: "2024-01-01",
-    },
-  ];
-
-  const contents = [
-    "Just finished my morning workout! 💪 Who else is staying active today?",
-    "New workout routine dropping tomorrow! Stay tuned 🔥",
-    "Healthy meal prep tips for the week ahead 🥗",
-    "Transform your body in 30 days with this program!",
-    "Morning yoga flow to start your day right ☀️",
-    "Exclusive content for my subscribers! 🎯",
-  ];
-
-  const images = [
-    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800",
-    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800",
-    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800",
-    "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800",
-    "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800",
-  ];
-
-  return Array.from({ length: 5 }, (_, i) => {
-    const postId = `${page}-${i}`;
-    const creator = creators[i % creators.length];
-    const isLocked = Math.random() > 0.7;
-
-    return {
-      id: postId,
-      creatorId: creator.id,
-      creator: creator,
-      content: contents[i % contents.length],
-      mediaUrls: [images[i % images.length]],
-      mediaType: "image" as const,
-      isLocked: isLocked,
-      price: isLocked ? 9.99 : undefined,
-      likesCount: Math.floor(Math.random() * 500) + 50,
-      commentsCount: Math.floor(Math.random() * 50) + 5,
-      createdAt: `${i + 1}h ago`,
-    };
-  });
+const formatRelativeTime = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 };
 
+const mapFeedPost = (feedPost: FeedPost): Post => ({
+  id: feedPost.id,
+  creatorId: feedPost.authorId,
+  creator: {
+    id: feedPost.user.id,
+    email: "",
+    username: feedPost.user.username,
+    displayName: feedPost.user.name,
+    bio: "",
+    avatar: feedPost.user.avatar || "",
+    banner: "",
+    role: "creator",
+    isVerified: false,
+    createdAt: "",
+  },
+  content: feedPost.content || "",
+  mediaUrls: feedPost.images,
+  mediaType: feedPost.images.length > 0 ? "image" : "text",
+  isLocked: feedPost.isLocked,
+  price: feedPost.ppvPrice ?? undefined,
+  likesCount: feedPost.likesCount,
+  commentsCount: feedPost.commentsCount,
+  isLiked: feedPost.isLiked,
+  createdAt: formatRelativeTime(feedPost.createdAt),
+});
+
 export default function InfiniteScrollFeed() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
 
   // Load initial posts
   useEffect(() => {
@@ -123,26 +90,30 @@ export default function InfiniteScrollFeed() {
   }, [hasMore, loading, page]);
 
   const loadMorePosts = async (isInitial = false) => {
-    if (loading) return;
+    if (loadingRef.current) return;
+    loadingRef.current = true;
 
     setLoading(true);
+    setError(null);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, isInitial ? 800 : 1000));
-
-    const newPosts = generateMockPosts(page);
-    setPosts((prev) => [...prev, ...newPosts]);
-    setPage((prev) => prev + 1);
-
-    // Stop loading after 5 pages (25 posts)
-    if (page >= 5) {
-      setHasMore(false);
+    try {
+      const { posts: newFeedPosts, pagination } = await postsAPI.getFeed(page, 20);
+      const newPosts = newFeedPosts
+        .filter((p) => p.authorId !== user?.id)
+        .map(mapFeedPost);
+      setPosts((prev) => [...prev, ...newPosts]);
+      setPage((prev) => prev + 1);
+      setHasMore(pagination.hasNextPage ?? page < pagination.totalPages);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status: number; data: unknown }; message?: string };
+      console.error("[Feed] Error loading posts:", axiosErr?.response?.status, axiosErr?.response?.data ?? axiosErr?.message);
+      setError("Failed to load posts. Please try again.");
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+      if (isInitial) setInitialLoading(false);
     }
-
-    setLoading(false);
-    if (isInitial) setInitialLoading(false);
   };
-
   // Show skeleton on initial load
   if (initialLoading) {
     return (
@@ -154,6 +125,17 @@ export default function InfiniteScrollFeed() {
     );
   }
 
+  if (error && posts.length === 0) {
+    return (
+      <Card className="p-8 text-center space-y-4">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" onClick={() => loadMorePosts(true)}>
+          Retry
+        </Button>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {posts.map((post, index) => (
@@ -161,6 +143,13 @@ export default function InfiniteScrollFeed() {
           <PostCardWithComments post={post} isSubscribed={false} />
         </div>
       ))}
+
+      {/* Error loading more */}
+      {error && posts.length > 0 && (
+        <Card className="p-4 text-center">
+          <p className="text-sm text-destructive">{error}</p>
+        </Card>
+      )}
 
       {/* Loading indicator */}
       {loading && (
