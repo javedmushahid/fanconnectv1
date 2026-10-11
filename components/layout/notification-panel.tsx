@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import {
   Bell,
   Heart,
@@ -67,11 +68,17 @@ export default function NotificationPanel() {
     hasMore,
     fetchNotifications,
     fetchMoreNotifications,
+    fetchUnreadCount,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     clearAll,
   } = useNotificationStore()
+
+  // Fetch unread count on mount so the badge shows before the panel is opened.
+  useEffect(() => {
+    fetchUnreadCount()
+  }, [])
 
   // Load notifications when the dropdown is first opened — we use a
   // lazy fetch: only trigger if we haven't loaded yet.

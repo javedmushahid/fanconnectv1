@@ -52,6 +52,12 @@ export interface ApiComment {
   createdAt: string
   user: ApiCommentUser
   replies?: ApiComment[]
+  repliesCount: number
+}
+
+export interface RepliesResponse {
+  replies: ApiComment[]
+  pagination: FeedPagination
 }
 
 export interface CommentsResponse {
@@ -103,6 +109,14 @@ export const postsAPI = {
       ...(parentId && { parentId }),
     })
     return data.data.comment
+  },
+
+  /**
+   * GET /posts/comments/:commentId/replies?page=1&limit=20
+   */
+  getReplies: async (commentId: string, page = 1, limit = 20): Promise<RepliesResponse> => {
+    const { data } = await apiClient.get(`/posts/comments/${commentId}/replies`, { params: { page, limit } })
+    return data.data
   },
 
   /**

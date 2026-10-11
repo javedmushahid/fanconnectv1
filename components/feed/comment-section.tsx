@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Heart, MoreVertical, Reply, Send, Loader2 } from 'lucide-react'
+import { MoreVertical, Reply, Send, Loader2, ChevronDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
 import { postsAPI, ApiComment } from '@/lib/api/endpoints/posts'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -41,6 +40,7 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [replySubmitting, setReplySubmitting] = useState(false)
+  const [loadingReplies, setLoadingReplies] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -65,6 +65,7 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
       const created = await postsAPI.addComment(postId, newComment.trim())
       const withUser = {
         ...created,
+        repliesCount: 0,
         user: created.user ?? {
           id: user?.id ?? '',
           username: user?.username ?? '',
@@ -89,6 +90,7 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
       const created = await postsAPI.addComment(postId, replyText.trim(), commentId)
       const withUser = {
         ...created,
+        repliesCount: 0,
         user: created.user ?? {
           id: user?.id ?? '',
           username: user?.username ?? '',
@@ -99,17 +101,39 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
       setComments((prev) =>
         prev.map((c) =>
           c.id === commentId
-            ? { ...c, replies: [...(c.replies ?? []), withUser] }
+            ? {
+                ...c,
+                replies: [...(c.replies ?? []), withUser],
+                repliesCount: (c.repliesCount ?? 0) + 1,
+              }
             : c
         )
       )
       setReplyText('')
       setReplyingTo(null)
-      onCommentAdded?.()
+      // replies do NOT increment the post commentsCount per API spec
     } catch {
       // keep input so user can retry
     } finally {
       setReplySubmitting(false)
+    }
+  }
+
+  const handleLoadReplies = async (commentId: string) => {
+    setLoadingReplies((prev) => ({ ...prev, [commentId]: true }))
+    try {
+      const { replies } = await postsAPI.getReplies(commentId)
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, replies, repliesCount: replies.length }
+            : c
+        )
+      )
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingReplies((prev) => ({ ...prev, [commentId]: false }))
     }
   }
 
@@ -120,14 +144,18 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
         setComments((prev) =>
           prev.map((c) =>
             c.id === parentId
-              ? { ...c, replies: (c.replies ?? []).filter((r) => r.id !== commentId) }
+              ? {
+                  ...c,
+                  replies: (c.replies ?? []).filter((r) => r.id !== commentId),
+                  repliesCount: Math.max(0, (c.repliesCount ?? 0) - 1),
+                }
               : c
           )
         )
       } else {
         setComments((prev) => prev.filter((c) => c.id !== commentId))
+        onCommentDeleted?.()
       }
-      onCommentDeleted?.()
     } catch {
       // ignore
     }
@@ -186,8 +214,8 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
           </p>
         )}
 
-        {comments.map((comment,index) => (
-          <div key={index} className="space-y-3">
+        {comments.map((comment) => (
+          <div key={comment.id} className="space-y-3">
             {/* Main Comment */}
             <div className="flex gap-3 group">
               <Avatar className="h-10 w-10 flex-shrink-0">
@@ -208,7 +236,7 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
                     </span>
                   </div>
 
-                  {(user?.id === comment.authorId) && (
+                  {user?.id === comment.authorId && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -341,6 +369,25 @@ export default function CommentSection({ postId, onCommentAdded, onCommentDelete
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* Load more replies button */}
+                {comment.repliesCount > (comment.replies?.length ?? 0) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground mt-1"
+                    onClick={() => handleLoadReplies(comment.id)}
+                    disabled={loadingReplies[comment.id]}
+                  >
+                    {loadingReplies[comment.id] ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                    View {comment.repliesCount - (comment.replies?.length ?? 0)} more{' '}
+                    {comment.repliesCount - (comment.replies?.length ?? 0) === 1 ? 'reply' : 'replies'}
+                  </Button>
                 )}
               </div>
             </div>

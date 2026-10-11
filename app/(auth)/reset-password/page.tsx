@@ -1,17 +1,18 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-// import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Lock, KeyRound, Eye, EyeOff } from 'lucide-react'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { toast } from 'sonner'
 import { authAPI } from '@/lib/api/endpoints/auth'
+
+const RESEND_COOLDOWN = 60
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -27,13 +28,60 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN)
   const [error, setError] = useState('')
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!emailFromQuery) {
       router.push('/forgot-password')
     }
   }, [emailFromQuery, router])
+
+  // Start initial countdown on mount
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timerRef.current!)
+  }, [])
+
+  const startCooldown = () => {
+    setResendCooldown(RESEND_COOLDOWN)
+    clearInterval(timerRef.current!)
+    timerRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || isResending) return
+    setIsResending(true)
+    try {
+      await authAPI.forgotPassword(formData.email)
+      toast.success('New reset code sent to your email!')
+      setFormData((prev) => ({ ...prev, otp: '' }))
+      startCooldown()
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Failed to resend code'
+      toast.error(message)
+    } finally {
+      setIsResending(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -95,12 +143,6 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {/* {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )} */}
-
             <div className="space-y-2">
               <Label htmlFor="otp">OTP Code</Label>
               <Input
@@ -115,6 +157,23 @@ export default function ResetPasswordPage() {
                 disabled={isLoading}
                 required
               />
+              {error && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
+              <p className="text-sm text-muted-foreground text-right">
+                {resendCooldown > 0 ? (
+                  <span>Resend in {resendCooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={isResending}
+                    className="text-primary hover:underline font-medium disabled:opacity-50"
+                  >
+                    {isResending ? 'Sending...' : 'Resend code'}
+                  </button>
+                )}
+              </p>
             </div>
 
             <div className="space-y-2">

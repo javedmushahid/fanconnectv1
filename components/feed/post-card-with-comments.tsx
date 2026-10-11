@@ -2,6 +2,7 @@
 
 import { Heart, MessageCircle, Bookmark, Share2, Lock, MoreVertical } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -70,7 +71,7 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
         {/* Header */}
         <div className="flex items-center justify-between p-4 bg-gradient-to-r from-background to-muted/20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative">
+            <Link href={`/${post.creator.username}`} className="relative">
               <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2">
                 <AvatarImage src={post.creator.avatar} alt={post.creator.displayName} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
@@ -84,11 +85,13 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
                   </svg>
                 </div>
               )}
-            </div>
+            </Link>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm sm:text-base truncate hover:text-primary transition-colors cursor-pointer">
-                {post.creator.displayName}
-              </h4>
+              <Link href={`/${post.creator.username}`}>
+                <h4 className="font-semibold text-sm sm:text-base truncate hover:text-primary transition-colors cursor-pointer">
+                  {post.creator.displayName}
+                </h4>
+              </Link>
               <p className="text-xs text-muted-foreground truncate">
                 @{post.creator.username} · {post.createdAt}
               </p>
@@ -262,6 +265,7 @@ export default function PostCardWithComments({ post, isSubscribed = false }: Pos
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postId={post.id}
+        creatorUsername={post.creator.username}
         postContent={post.content}
       />
 

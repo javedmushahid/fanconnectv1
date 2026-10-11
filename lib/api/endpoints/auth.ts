@@ -3,6 +3,8 @@ import {
   LoginCredentials,
   RegisterCredentials,
   VerifyOTPPayload,
+  ResetPasswordPayload,
+  ChangePasswordPayload,
   User,
   ApiResponse,
   LoginResponse,
@@ -26,12 +28,15 @@ export const authAPI = {
     return data.data
   },
 
+  resendOTP: async (email: string): Promise<void> => {
+    await apiClient.post('/auth/resend-otp', { email })
+  },
+
   getCurrentUser: async (): Promise<User> => {
     const { data } = await apiClient.get<ApiResponse<{ user: User }>>('/auth/me')
     return data.data.user
   },
 
-  // NEW: Refresh token endpoint
   refreshToken: async (): Promise<void> => {
     await apiClient.post('/auth/refresh-token')
   },
@@ -42,5 +47,13 @@ export const authAPI = {
 
   forgotPassword: async (email: string): Promise<void> => {
     await apiClient.post('/auth/forgot-password', { email })
+  },
+
+  resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {
+    await apiClient.post('/auth/reset-password', payload)
+  },
+
+  changePassword: async (payload: ChangePasswordPayload): Promise<void> => {
+    await apiClient.post('/auth/change-password', payload)
   },
 }

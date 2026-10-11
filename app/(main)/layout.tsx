@@ -6,6 +6,7 @@ import ScrollToTop from '@/components/layout/scroll-to-top'
 import InstallPrompt from '@/components/pwa/install-prompt'
 import NotificationsInit from '@/components/notifications/notifications-init'
 import MessagesInit from '@/components/messages/messages-init'
+import SuggestedUsers from '@/components/layout/suggested-users'
 
 export default function MainLayout({
   children,
@@ -30,12 +31,7 @@ export default function MainLayout({
         {/* Right Sidebar - Desktop Only */}
         <aside className="hidden xl:block w-80 p-6 border-l flex-shrink-0">
           <div className="sticky top-20">
-            <h3 className="font-bold text-lg mb-4">Suggested Creators</h3>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                No suggestions yet
-              </p>
-            </div>
+            <SuggestedUsers />
           </div>
         </aside>
       </div>

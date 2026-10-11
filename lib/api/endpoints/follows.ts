@@ -2,75 +2,84 @@ import apiClient from '../client'
 
 export interface FollowUser {
   id: string
-  email: string
   username: string
   name: string
   avatar: string | null
-  bio?: string | null
+  bio: string | null
 }
 
-export interface FollowersResponse {
-  followers: Array<{ follower: FollowUser }>
-  total: number
+export interface FollowPagination {
   page: number
   limit: number
-}
-
-export interface FollowingResponse {
-  following: Array<{ following: FollowUser }>
   total: number
-  page: number
-  limit: number
+  totalPages: number
 }
 
-/**
- * Follows API
- * All follow-related endpoints
- */
+export interface FollowListResult {
+  users: FollowUser[]
+  pagination: FollowPagination
+}
+
+export interface SuggestedUser {
+  id: string
+  username: string
+  name: string
+  avatar: string | null
+  bio: string | null
+  followersCount: number
+}
+
 export const followsAPI = {
   /**
-   * Get user's followers
+   * GET /follows/:userId/followers?page=1&limit=20
    */
-  getFollowers: async (userId: string, page = 1, limit = 50): Promise<FollowUser[]> => {
-    const { data } = await apiClient.get<{ success: boolean; data: FollowersResponse }>(
-      `/follows/${userId}/followers?page=${page}&limit=${limit}`
-    )
-    
-    if (!data.success || !data.data?.followers) {
-      return []
+  getFollowers: async (userId: string, page = 1, limit = 20): Promise<FollowListResult> => {
+    const { data } = await apiClient.get(`/follows/${userId}/followers`, { params: { page, limit } })
+    return {
+      users: data.data.followers ?? [],
+      pagination: data.data.pagination,
     }
-    
-    return data.data.followers
-      .map(f => f)
-      .filter(user => user && user.id)
   },
 
   /**
-   * Get users that user is following
+   * GET /follows/:userId/following?page=1&limit=20
    */
-  getFollowing: async (userId: string, page = 1, limit = 50): Promise<FollowUser[]> => {
-    const { data } = await apiClient.get<{ success: boolean; data: FollowingResponse }>(
-      `/follows/${userId}/following?page=${page}&limit=${limit}`
-    )
-    
-    if (!data.success || !data.data?.following) {
-      return []
+  getFollowing: async (userId: string, page = 1, limit = 20): Promise<FollowListResult> => {
+    const { data } = await apiClient.get(`/follows/${userId}/following`, { params: { page, limit } })
+    return {
+      users: data.data.following ?? [],
+      pagination: data.data.pagination,
     }
-    
-    return data.data.following
-      .map(f => f)
-      .filter(user => user && user.id)
   },
 
   /**
-   * Follow a user
+   * GET /follows/:userId/check
+   */
+  checkFollow: async (userId: string): Promise<boolean> => {
+    const { data } = await apiClient.get(`/follows/${userId}/check`)
+    return data.data.isFollowing ?? false
+  },
+
+  /**
+   * GET /follows/suggestions/users?limit=5
+   */
+  getSuggestions: async (limit = 5): Promise<SuggestedUser[]> => {
+    const { data } = await apiClient.get<{ success: boolean; data: { suggestions: SuggestedUser[] } }>(
+      `/follows/suggestions/users?limit=${limit}`
+    )
+    if (!data.success || !data.data?.suggestions) return []
+    return data.data.suggestions
+  },
+
+  /**
+   * POST /follows/:userId
    */
   followUser: async (userId: string): Promise<void> => {
     await apiClient.post(`/follows/${userId}`)
   },
 
   /**
-   * Unfollow a user
+   * DELETE /follows/:userId
    */
   unfollowUser: async (userId: string): Promise<void> => {
     await apiClient.delete(`/follows/${userId}`)

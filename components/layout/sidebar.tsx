@@ -55,7 +55,7 @@ export default function Sidebar() {
                   )}
                 >
                   <Icon className="mr-3 h-5 w-5" />
-                  <span className="font-medium flex-1">{item.label}</span>
+                  <span className="font-medium">{item.label}</span>
                   {showBadge && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-1 text-[11px] font-semibold text-white">
                       {messageUnreadCount > 99 ? '99+' : messageUnreadCount}

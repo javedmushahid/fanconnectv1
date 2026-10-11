@@ -40,6 +40,7 @@ export interface ProfilePost {
   images: string[]
   visibility: 'FREE' | 'SUBSCRIBERS' | 'PAID' | string
   isLocked: boolean
+  isLiked: boolean
   likesCount: number
   commentsCount: number
   viewsCount: number

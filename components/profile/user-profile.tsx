@@ -17,12 +17,13 @@ import {
   Flag,
   Ban,
   Heart,
-  MessageSquare,
   Eye,
   Play,
-  Lock,
   Crown,
+  Loader2,
 } from "lucide-react";
+import PostCardWithComments from "@/components/feed/post-card-with-comments";
+import { Post } from "@/types";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -36,11 +37,12 @@ import { format } from "date-fns";
 import {
   usersAPI,
   UserProfileData,
+  ProfileUser,
   ProfilePost,
   ProfileStory,
   ProfileMoment,
 } from "@/lib/api/endpoints/users";
-import { followsAPI } from "@/lib/api/endpoints/follows";
+import { followsAPI, FollowUser, FollowPagination } from "@/lib/api/endpoints/follows";
 import { subscriptionsAPI } from "@/lib/api/endpoints/subscriptions";
 import { useAuthStore } from "@/store/auth.store";
 import {
@@ -53,6 +55,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UserProfileProps {
   username: string;
@@ -88,14 +96,25 @@ function ProfileSkeleton() {
 }
 
 // ─── Posts tab ───────────────────────────────────────────────────────────────
+const formatRelativeTime = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+};
+
 function PostsList({
   posts,
   isSubscribed,
-  creatorId,
+  profile,
 }: {
   posts: ProfilePost[];
   isSubscribed: boolean;
-  creatorId: string;
+  profile: ProfileUser;
 }) {
   if (posts.length === 0) {
     return (
@@ -103,112 +122,41 @@ function PostsList({
     );
   }
 
+  const mappedPosts: Post[] = posts.map((post) => ({
+    id: post.id,
+    creatorId: profile.id,
+    creator: {
+      id: profile.id,
+      email: "",
+      username: profile.username,
+      displayName: profile.name,
+      bio: profile.bio ?? "",
+      avatar: profile.avatar ?? "",
+      banner: profile.banner ?? "",
+      role: "creator" as const,
+      isVerified: profile.isVerified ?? false,
+      createdAt: profile.createdAt,
+    },
+    content: post.content ?? "",
+    mediaUrls: post.images,
+    mediaType: post.images.length > 0 ? ("image" as const) : ("text" as const),
+    isLocked: post.isLocked,
+    likesCount: post.likesCount,
+    commentsCount: post.commentsCount,
+    isLiked: post.isLiked,
+    createdAt: formatRelativeTime(post.createdAt),
+  }));
+  console.log("mappedPosts", mappedPosts);
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {posts.map((post) => {
-        if (post.isLocked && !isSubscribed) {
-          return (
-            <div
-              key={post.id}
-              className="border rounded-xl overflow-hidden bg-card relative"
-            >
-              {/* Blurred placeholder content */}
-              <div className="p-4 space-y-3 select-none pointer-events-none blur-sm">
-                <div className="space-y-2">
-                  <div className="h-3 bg-muted-foreground/20 rounded w-3/4" />
-                  <div className="h-3 bg-muted-foreground/20 rounded w-1/2" />
-                </div>
-                <div className="aspect-video rounded-lg bg-gradient-to-br from-muted to-muted-foreground/20" />
-                <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-                  <span className="flex items-center gap-1">
-                    <Heart className="h-3.5 w-3.5" />
-                    {formatCount(post.likesCount)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    {formatCount(post.commentsCount)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Eye className="h-3.5 w-3.5" />
-                    {formatCount(post.viewsCount)}
-                  </span>
-                  <span className="ml-auto">
-                    {format(new Date(post.createdAt), "MMM d, yyyy")}
-                  </span>
-                </div>
-              </div>
-
-              {/* Lock overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/60 backdrop-blur-sm rounded-xl">
-                <div className="bg-primary/10 border border-primary/20 rounded-full p-3">
-                  <Lock className="h-5 w-5 text-primary" />
-                </div>
-                <div className="text-center px-4">
-                  <p className="font-semibold text-sm">Subscribers Only</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Subscribe to unlock this post
-                  </p>
-                </div>
-                <Link href={`/subscribe/${creatorId}`}>
-                  <Button size="sm" className="gap-2 mt-1">
-                    Subscribe to unlock
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div
-            key={post.id}
-            className="border rounded-xl p-4 space-y-3 bg-card"
-          >
-            {post.content && (
-              <p className="text-sm whitespace-pre-wrap">{post.content}</p>
-            )}
-
-            {post.images.length > 0 && (
-              <div
-                className={`grid gap-1 ${
-                  post.images.length === 1
-                    ? "grid-cols-1"
-                    : post.images.length === 2
-                    ? "grid-cols-2"
-                    : "grid-cols-3"
-                }`}
-              >
-                {post.images.map((src, i) => (
-                  <div
-                    key={i}
-                    className="relative aspect-square rounded-lg overflow-hidden bg-muted"
-                  >
-                    <Image src={src} alt="" fill className="object-cover" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-              <span className="flex items-center gap-1">
-                <Heart className="h-3.5 w-3.5" />
-                {formatCount(post.likesCount)}
-              </span>
-              <span className="flex items-center gap-1">
-                <MessageSquare className="h-3.5 w-3.5" />
-                {formatCount(post.commentsCount)}
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="h-3.5 w-3.5" />
-                {formatCount(post.viewsCount)}
-              </span>
-              <span className="ml-auto">
-                {format(new Date(post.createdAt), "MMM d, yyyy")}
-              </span>
-            </div>
-          </div>
-        );
-      })}
+      {mappedPosts.map((post) => (
+        <PostCardWithComments
+          key={post.id}
+          post={post}
+          isSubscribed={isSubscribed}
+        />
+      ))}
     </div>
   );
 }
@@ -285,6 +233,116 @@ function MediaGrid({
   );
 }
 
+// ─── Followers / Following dialog ────────────────────────────────────────────
+function FollowListDialog({
+  userId,
+  type,
+  isOpen,
+  onClose,
+}: {
+  userId: string;
+  type: "followers" | "following";
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [users, setUsers] = useState<FollowUser[]>([]);
+  const [pagination, setPagination] = useState<FollowPagination | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchPage = async (page: number, append: boolean) => {
+    const fetcher = type === "followers"
+      ? followsAPI.getFollowers(userId, page)
+      : followsAPI.getFollowing(userId, page);
+    const result = await fetcher;
+    setUsers((prev) => append ? [...prev, ...result.users] : result.users);
+    setPagination(result.pagination);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setUsers([]);
+    setPagination(null);
+    setLoading(true);
+    fetchPage(1, false).catch(() => setUsers([])).finally(() => setLoading(false));
+  }, [isOpen, userId, type]);
+
+  const handleLoadMore = async () => {
+    if (!pagination || pagination.page >= pagination.totalPages) return;
+    setLoadingMore(true);
+    fetchPage(pagination.page + 1, true).finally(() => setLoadingMore(false));
+  };
+
+  const hasMore = pagination ? pagination.page < pagination.totalPages : false;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="capitalize">
+            {type}
+            {pagination && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({pagination.total})
+              </span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : users.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8 text-sm">
+              No {type} yet
+            </p>
+          ) : (
+            <>
+              {users.map((u) => (
+                <Link
+                  key={u.id}
+                  href={`/${u.username}`}
+                  onClick={onClose}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    <AvatarImage src={u.avatar ?? ""} alt={u.name} />
+                    <AvatarFallback>{u.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{u.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
+                    {u.bio && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{u.bio}</p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+              {hasMore && (
+                <div className="pt-2 pb-1 flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {loadingMore ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Load more
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function UserProfile({ username }: UserProfileProps) {
   const { user: currentUser } = useAuthStore();
@@ -296,6 +354,7 @@ export default function UserProfile({ username }: UserProfileProps) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [isCanceling, setIsCanceling] = useState(false);
+  const [followDialog, setFollowDialog] = useState<"followers" | "following" | null>(null);
 
   const profile = profileData?.user ?? null;
   const isOwnProfile = currentUser?.username === username;
@@ -355,7 +414,9 @@ export default function UserProfile({ username }: UserProfileProps) {
     if (!profile) return;
     if (!subscriptionId) {
       try {
-        const { subscription } = await subscriptionsAPI.checkSubscription(profile.id);
+        const { subscription } = await subscriptionsAPI.checkSubscription(
+          profile.id
+        );
         if (subscription?.id) setSubscriptionId(subscription.id);
       } catch {
         toast.error("Could not load subscription details.");
@@ -369,7 +430,9 @@ export default function UserProfile({ username }: UserProfileProps) {
     if (!subscriptionId || !profileData) return;
     setIsCanceling(true);
     try {
-      const { endsAt } = await subscriptionsAPI.cancelSubscription(subscriptionId);
+      const { endsAt } = await subscriptionsAPI.cancelSubscription(
+        subscriptionId
+      );
       setProfileData({
         ...profileData,
         subscriptionCancelAtPeriodEnd: true,
@@ -469,22 +532,28 @@ export default function UserProfile({ username }: UserProfileProps) {
                       posts
                     </span>
                   </div>
-                  <div>
+                  <button
+                    onClick={() => setFollowDialog("followers")}
+                    className="hover:opacity-70 transition-opacity text-left"
+                  >
                     <span className="font-bold">
                       {formatCount(profile.followersCount)}
                     </span>
                     <span className="text-muted-foreground ml-1 text-sm">
                       followers
                     </span>
-                  </div>
-                  <div>
+                  </button>
+                  <button
+                    onClick={() => setFollowDialog("following")}
+                    className="hover:opacity-70 transition-opacity text-left"
+                  >
                     <span className="font-bold">
                       {formatCount(profile.followingCount)}
                     </span>
                     <span className="text-muted-foreground ml-1 text-sm">
                       following
                     </span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Bio */}
@@ -545,7 +614,11 @@ export default function UserProfile({ username }: UserProfileProps) {
                           </Button>
                           {profileData.subscriptionEndsAt && (
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 text-xs bg-popover text-popover-foreground border rounded-md shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                              Access until {format(new Date(profileData.subscriptionEndsAt), "MMM d, yyyy")}
+                              Access until{" "}
+                              {format(
+                                new Date(profileData.subscriptionEndsAt),
+                                "MMM d, yyyy"
+                              )}
                             </div>
                           )}
                         </div>
@@ -630,7 +703,7 @@ export default function UserProfile({ username }: UserProfileProps) {
             <PostsList
               posts={profileData.posts}
               isSubscribed={profileData.isSubscribed}
-              creatorId={profile.id}
+              profile={profile}
             />
           </TabsContent>
 
@@ -677,11 +750,16 @@ export default function UserProfile({ username }: UserProfileProps) {
             <AlertDialogDescription>
               You'll keep access until the end of your current billing period.
               After that, you'll lose access to exclusive content from{" "}
-              <span className="font-medium text-foreground">{profile.name}</span>.
+              <span className="font-medium text-foreground">
+                {profile.name}
+              </span>
+              .
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isCanceling}>Keep Subscription</AlertDialogCancel>
+            <AlertDialogCancel disabled={isCanceling}>
+              Keep Subscription
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancelSubscription}
               disabled={isCanceling}
@@ -692,6 +770,15 @@ export default function UserProfile({ username }: UserProfileProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {followDialog && (
+        <FollowListDialog
+          userId={profile.id}
+          type={followDialog}
+          isOpen={!!followDialog}
+          onClose={() => setFollowDialog(null)}
+        />
+      )}
     </div>
   );
 }

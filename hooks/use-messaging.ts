@@ -1,305 +1,316 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useAuth } from './use-auth'
-import { socketManager } from '@/lib/messaging/socket-manager'
-import { messagingAPI, Message } from '@/lib/api/endpoints/messaging'
-import { followsAPI, FollowUser } from '@/lib/api/endpoints/follows'
-import { useMessageStore } from '@/store/message.store'
-import { toast } from 'sonner'
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useAuth } from "./use-auth";
+import { socketManager } from "@/lib/messaging/socket-manager";
+import { messagingAPI, Message } from "@/lib/api/endpoints/messaging";
+import { followsAPI, FollowUser } from "@/lib/api/endpoints/follows";
+import { useMessageStore } from "@/store/message.store";
+import { toast } from "sonner";
 
 /**
  * useMessaging Hook
  * Professional messaging hook with auto-reconnect, error handling, and state management
  */
 export function useMessaging() {
-  const { user: currentUser } = useAuth()
+  const { user: currentUser } = useAuth();
 
   // State
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isConnected, setIsConnected] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const [conversationId, setConversationId] = useState<string | null>(null)
-  const [recipient, setRecipient] = useState<FollowUser | null>(null)
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
-  
-  // Followers/Following
-  const [followers, setFollowers] = useState<FollowUser[]>([])
-  const [following, setFollowing] = useState<FollowUser[]>([])
-  const [loadingFollowers, setLoadingFollowers] = useState(false)
-  const [loadingFollowing, setLoadingFollowing] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [recipient, setRecipient] = useState<FollowUser | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const { fetchUnreadCount } = useMessageStore()
+  // Followers/Following
+  const [followers, setFollowers] = useState<FollowUser[]>([]);
+  const [following, setFollowing] = useState<FollowUser[]>([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
+
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { fetchUnreadCount } = useMessageStore();
 
   /**
    * Fetch followers
    */
   const fetchFollowers = useCallback(async () => {
-    if (!currentUser) return
+    if (!currentUser) return;
 
-    setLoadingFollowers(true)
+    setLoadingFollowers(true);
     try {
-      const users = await followsAPI.getFollowers(currentUser.id)
-      setFollowers(users)
+      const users = await followsAPI.getFollowers(currentUser.id);
+      setFollowers(users.users);
     } catch (error) {
-      console.error('Failed to fetch followers:', error)
-      toast.error('Failed to load followers')
+      console.error("Failed to fetch followers:", error);
+      toast.error("Failed to load followers");
     } finally {
-      setLoadingFollowers(false)
+      setLoadingFollowers(false);
     }
-  }, [currentUser])
+  }, [currentUser]);
 
   /**
    * Fetch following
    */
   const fetchFollowing = useCallback(async () => {
-    if (!currentUser) return
+    if (!currentUser) return;
 
-    setLoadingFollowing(true)
+    setLoadingFollowing(true);
     try {
-      const users = await followsAPI.getFollowing(currentUser.id)
-      setFollowing(users)
+      const users = await followsAPI.getFollowing(currentUser.id);
+      setFollowing(users.users);
     } catch (error) {
-      console.error('Failed to fetch following:', error)
-      toast.error('Failed to load following')
+      console.error("Failed to fetch following:", error);
+      toast.error("Failed to load following");
     } finally {
-      setLoadingFollowing(false)
+      setLoadingFollowing(false);
     }
-  }, [currentUser])
+  }, [currentUser]);
 
   /**
    * Initialize socket connection
    */
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser) return;
 
-    console.log('[useMessaging] Initializing socket connection')
+    console.log("[useMessaging] Initializing socket connection");
 
-    const socket = socketManager.connect()
+    const socket = socketManager.connect();
 
     // Connection status
-    const handleConnect = () => setIsConnected(true)
-    const handleDisconnect = () => setIsConnected(false)
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
 
-    socketManager.on('message:new', handleConnect)
-    socket.on('connect', handleConnect)
-    socket.on('disconnect', handleDisconnect)
+    socketManager.on("message:new", handleConnect);
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
 
     // Set initial state
-    setIsConnected(socket.connected)
+    setIsConnected(socket.connected);
 
     // Message events
     const handleNewMessage = (data: any) => {
-      if (!data?.message) return
+      if (!data?.message) return;
 
-      setMessages(prev => {
-        if (prev.some(m => m.id === data.message.id)) return prev
-        return [...prev, data.message]
-      })
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === data.message.id)) return prev;
+        return [...prev, data.message];
+      });
 
       // Auto-mark as delivered
       if (conversationId && data.message.senderId !== currentUser.id) {
-        socketManager.emit('message:delivered', {
+        socketManager.emit("message:delivered", {
           conversationId,
           messageId: data.message.id,
           recipientId: data.message.senderId,
-        })
+        });
       }
-    }
+    };
 
     const handleMessageStatus = (data: any) => {
-      if (!data?.messageId || !data?.status) return
+      if (!data?.messageId || !data?.status) return;
 
-      setMessages(prev =>
-        prev.map(msg =>
+      setMessages((prev) =>
+        prev.map((msg) =>
           msg.id === data.messageId ? { ...msg, status: data.status } : msg
         )
-      )
-    }
+      );
+    };
 
     const handleTypingStart = (data: any) => {
       if (data?.conversationId === conversationId) {
-        setIsTyping(true)
+        setIsTyping(true);
       }
-    }
+    };
 
     const handleTypingStop = (data: any) => {
       if (data?.conversationId === conversationId) {
-        setIsTyping(false)
+        setIsTyping(false);
       }
-    }
+    };
 
     const handleUserOnline = (data: any) => {
       if (data?.userId) {
-        setOnlineUsers(prev => new Set(prev).add(data.userId))
+        setOnlineUsers((prev) => new Set(prev).add(data.userId));
       }
-    }
+    };
 
     const handleUserOffline = (data: any) => {
       if (data?.userId) {
-        setOnlineUsers(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(data.userId)
-          return newSet
-        })
+        setOnlineUsers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(data.userId);
+          return newSet;
+        });
       }
-    }
+    };
 
     // Register event listeners
-    socketManager.on('message:new', handleNewMessage)
-    socketManager.on('message:status', handleMessageStatus)
-    socketManager.on('typing:start', handleTypingStart)
-    socketManager.on('typing:stop', handleTypingStop)
-    socketManager.on('user:online', handleUserOnline)
-    socketManager.on('user:offline', handleUserOffline)
+    socketManager.on("message:new", handleNewMessage);
+    socketManager.on("message:status", handleMessageStatus);
+    socketManager.on("typing:start", handleTypingStart);
+    socketManager.on("typing:stop", handleTypingStop);
+    socketManager.on("user:online", handleUserOnline);
+    socketManager.on("user:offline", handleUserOffline);
 
     // Cleanup
     return () => {
-      socket.off('connect', handleConnect)
-      socket.off('disconnect', handleDisconnect)
-      socketManager.off('message:new', handleNewMessage)
-      socketManager.off('message:status', handleMessageStatus)
-      socketManager.off('typing:start', handleTypingStart)
-      socketManager.off('typing:stop', handleTypingStop)
-      socketManager.off('user:online', handleUserOnline)
-      socketManager.off('user:offline', handleUserOffline)
-      socketManager.disconnect()
-    }
-  }, [currentUser, conversationId])
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socketManager.off("message:new", handleNewMessage);
+      socketManager.off("message:status", handleMessageStatus);
+      socketManager.off("typing:start", handleTypingStart);
+      socketManager.off("typing:stop", handleTypingStop);
+      socketManager.off("user:online", handleUserOnline);
+      socketManager.off("user:offline", handleUserOffline);
+      socketManager.disconnect();
+    };
+  }, [currentUser, conversationId]);
 
   /**
    * Load followers and following on mount
    */
   useEffect(() => {
     if (currentUser) {
-      fetchFollowers()
-      fetchFollowing()
+      fetchFollowers();
+      fetchFollowing();
     }
-  }, [currentUser, fetchFollowers, fetchFollowing])
+  }, [currentUser, fetchFollowers, fetchFollowing]);
 
   /**
    * Start conversation with user
    */
-  const startConversation = useCallback(async (user: FollowUser) => {
-    if (!user?.id) return
+  const startConversation = useCallback(
+    async (user: FollowUser) => {
+      if (!user?.id) return;
 
-    try {
-      setRecipient(user)
+      try {
+        setRecipient(user);
 
-      const conversation = await messagingAPI.getOrCreateConversation(user.id)
-      setConversationId(conversation.id)
+        const conversation = await messagingAPI.getOrCreateConversation(
+          user.id
+        );
+        setConversationId(conversation.id);
 
-      const conversationMessages = await messagingAPI.getConversationMessages(conversation.id)
-      setMessages(conversationMessages)
+        const conversationMessages = await messagingAPI.getConversationMessages(
+          conversation.id
+        );
+        setMessages(conversationMessages);
 
-      // Mark as delivered
-      conversationMessages.forEach(msg => {
-        if (msg.senderId !== currentUser?.id && socketManager.isConnected()) {
-          socketManager.emit('message:delivered', {
-            conversationId: conversation.id,
-            messageId: msg.id,
-            recipientId: user.id,
-          })
+        // Mark as delivered
+        conversationMessages.forEach((msg) => {
+          if (msg.senderId !== currentUser?.id && socketManager.isConnected()) {
+            socketManager.emit("message:delivered", {
+              conversationId: conversation.id,
+              messageId: msg.id,
+              recipientId: user.id,
+            });
+          }
+        });
+
+        // Mark as read: use the last message from the other user
+        const lastReceivedMsg = [...conversationMessages]
+          .reverse()
+          .find((msg) => msg.senderId !== currentUser?.id);
+
+        if (lastReceivedMsg) {
+          try {
+            await messagingAPI.markAsRead(conversation.id, lastReceivedMsg.id);
+          } catch {
+            // non-critical
+          }
+          fetchUnreadCount();
         }
-      })
-
-      // Mark as read: use the last message from the other user
-      const lastReceivedMsg = [...conversationMessages]
-        .reverse()
-        .find(msg => msg.senderId !== currentUser?.id)
-
-      if (lastReceivedMsg) {
-        try {
-          await messagingAPI.markAsRead(conversation.id, lastReceivedMsg.id)
-        } catch {
-          // non-critical
-        }
-        fetchUnreadCount()
+      } catch (error: any) {
+        console.error("Failed to load conversation:", error);
+        toast.error(error.response.data.message);
+        return error;
       }
-    } catch (error) {
-      console.error('Failed to load conversation:', error)
-      toast.error('Failed to load conversation')
-    }
-  }, [currentUser])
+    },
+    [currentUser]
+  );
 
   /**
    * Send message
    */
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || !recipient?.id || !conversationId) return
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!content.trim() || !recipient?.id || !conversationId) return;
 
-    try {
-      const message = await messagingAPI.sendMessage(recipient.id, {
-        content,
-        type: 'TEXT',
-      })
+      try {
+        const message = await messagingAPI.sendMessage(recipient.id, {
+          content,
+          type: "TEXT",
+        });
 
-      setMessages(prev => {
-        if (prev.some(m => m.id === message.id)) return prev
-        return [...prev, message]
-      })
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
 
-      // Emit sent event
-      if (socketManager.isConnected()) {
-        socketManager.emit('message:sent', {
-          conversationId,
-          messageId: message.id,
-          recipientId: recipient.id,
-        })
+        // Emit sent event
+        if (socketManager.isConnected()) {
+          socketManager.emit("message:sent", {
+            conversationId,
+            messageId: message.id,
+            recipientId: recipient.id,
+          });
+        }
+
+        // Stop typing
+        handleStopTyping();
+
+        return message;
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        toast.error("Failed to send message");
+        throw error;
       }
-
-      // Stop typing
-      handleStopTyping()
-
-      return message
-    } catch (error) {
-      console.error('Failed to send message:', error)
-      toast.error('Failed to send message')
-      throw error
-    }
-  }, [recipient, conversationId])
+    },
+    [recipient, conversationId]
+  );
 
   /**
    * Handle typing
    */
   const handleTyping = useCallback(() => {
-    if (!socketManager.isConnected() || !conversationId || !recipient) return
+    if (!socketManager.isConnected() || !conversationId || !recipient) return;
 
-    socketManager.emit('typing:start', {
+    socketManager.emit("typing:start", {
       conversationId,
       recipientId: recipient.id,
-    })
+    });
 
     if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
+      clearTimeout(typingTimeoutRef.current);
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      handleStopTyping()
-    }, 3000)
-  }, [conversationId, recipient])
+      handleStopTyping();
+    }, 3000);
+  }, [conversationId, recipient]);
 
   /**
    * Stop typing
    */
   const handleStopTyping = useCallback(() => {
-    if (!socketManager.isConnected() || !conversationId || !recipient) return
+    if (!socketManager.isConnected() || !conversationId || !recipient) return;
 
-    socketManager.emit('typing:stop', {
+    socketManager.emit("typing:stop", {
       conversationId,
       recipientId: recipient.id,
-    })
-  }, [conversationId, recipient])
+    });
+  }, [conversationId, recipient]);
 
   /**
    * Reset conversation
    */
   const resetConversation = useCallback(() => {
-    setRecipient(null)
-    setMessages([])
-    setConversationId(null)
-  }, [])
+    setRecipient(null);
+    setMessages([]);
+    setConversationId(null);
+  }, []);
 
   return {
     // State
@@ -326,5 +337,5 @@ export function useMessaging() {
 
     // Utilities
     isUserOnline: (userId: string) => onlineUsers.has(userId),
-  }
+  };
 }

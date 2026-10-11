@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +13,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Chrome } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { FaGoogle } from "react-icons/fa";
 
 export default function SignupPage() {
-  const router = useRouter();
-  const { register, isLoading: loading, error } = useAuth();
+  const { register, isLoading, error } = useAuth();
   const [formData, setFormData] = useState({
     displayName: "",
     username: "",
@@ -28,17 +26,12 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [validationError, setValidationError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError("");
 
-    // Validation
     if (
       !formData.email ||
       !formData.password ||
@@ -79,15 +72,16 @@ export default function SignupPage() {
     try {
       await register(
         formData.email,
-        formData.password,
         formData.username,
+        formData.password,
         formData.displayName
       );
-      // Redirect handled by useAuth hook
-    } catch (err) {
-      // Error handled by useAuth hook
+      // redirect to /verify-otp handled by useAuth
+    } catch {
+      // error displayed via store toast
     }
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -96,9 +90,10 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignup = () => {
-    // Handle Google OAuth
     console.log("Google signup");
   };
+
+  const displayedError = validationError || error || "";
 
   return (
     <ProtectedRoute requireAuth={false}>
@@ -118,7 +113,7 @@ export default function SignupPage() {
             onClick={handleGoogleSignup}
             type="button"
           >
-            <Chrome className="mr-2 h-4 w-4" />
+            <FaGoogle className="mr-2 h-4 w-4 text-[#DB4437]" />
             Sign up with Google
           </Button>
 
@@ -134,14 +129,20 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {displayedError && (
+              <p className="text-sm text-destructive">{displayedError}</p>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="displayName">Display Name</Label>
               <Input
                 id="displayName"
+                name="displayName"
                 type="text"
                 placeholder="John Doe"
                 value={formData.displayName}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -149,10 +150,12 @@ export default function SignupPage() {
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
+                name="username"
                 type="text"
                 placeholder="johndoe"
                 value={formData.username}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -160,10 +163,12 @@ export default function SignupPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="name@example.com"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -171,24 +176,28 @@ export default function SignupPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
+                name="confirmPassword"
                 type="password"
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>

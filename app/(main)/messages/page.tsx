@@ -81,8 +81,12 @@ const MessagingPage = () => {
   };
 
   const handleSelectUser = async (user: FollowUser) => {
-    await startConversation(user);
-    setShowUserSelection(false);
+    const response = await startConversation(user);
+    if (response) {
+      resetConversation();
+    } else {
+      setShowUserSelection(false);
+    }
   };
 
   const handleBack = () => {
@@ -446,154 +450,157 @@ const MessagingPage = () => {
 
                 {/* Messages Area - Scrollable middle section */}
                 <div className="flex-1 overflow-y-auto pb-2">
-                  <div className="p-4 md:p-6">
-                    <div className="max-w-4xl mx-auto space-y-4">
-                      {messages.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <div className="bg-primary/5 rounded-full p-4 mb-4">
-                            <MessageCircle className="h-8 w-8 text-primary/50" />
+                    <div className="p-4 md:p-6">
+                      <div className="max-w-4xl mx-auto space-y-4">
+                        {messages.length === 0 && (
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="bg-primary/5 rounded-full p-4 mb-4">
+                              <MessageCircle className="h-8 w-8 text-primary/50" />
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              No messages yet
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              Start the conversation with {recipient.name}!
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-1">
-                            No messages yet
-                          </p>
-                          <p className="text-xs text-muted-foreground/70">
-                            Start the conversation with {recipient.name}!
-                          </p>
-                        </div>
-                      )}
+                        )}
 
-                      {messages.map((msg, index) => {
-                        if (!msg || !msg.id) return null;
+                        {messages.map((msg, index) => {
+                          if (!msg || !msg.id) return null;
 
-                        const isSent = msg.senderId === currentUser.id;
-                        const showAvatar =
-                          index === 0 ||
-                          messages[index - 1]?.senderId !== msg.senderId;
-                        const isLastInGroup =
-                          index === messages.length - 1 ||
-                          messages[index + 1]?.senderId !== msg.senderId;
+                          const isSent = msg.senderId === currentUser.id;
+                          const showAvatar =
+                            index === 0 ||
+                            messages[index - 1]?.senderId !== msg.senderId;
+                          const isLastInGroup =
+                            index === messages.length - 1 ||
+                            messages[index + 1]?.senderId !== msg.senderId;
 
-                        return (
-                          <div
-                            key={msg.id}
-                            className={cn(
-                              "flex gap-2 items-end",
-                              isSent ? "justify-end" : "justify-start"
-                            )}
-                          >
-                            {!isSent && (
-                              <Avatar
-                                className={cn(
-                                  "h-7 w-7 flex-shrink-0",
-                                  !showAvatar && "opacity-0"
-                                )}
-                              >
-                                <AvatarImage
-                                  src={recipient.avatar || undefined}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                  {recipient.name?.charAt(0).toUpperCase() ||
-                                    "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+                          return (
                             <div
+                              key={msg.id}
                               className={cn(
-                                "max-w-[75%] sm:max-w-[65%] rounded-2xl px-4 py-2.5 shadow-sm",
-                                isSent
-                                  ? "bg-primary text-primary-foreground rounded-br-md"
-                                  : "bg-card border rounded-bl-md",
-                                !isLastInGroup && isSent && "rounded-br-2xl",
-                                !isLastInGroup && !isSent && "rounded-bl-2xl"
+                                "flex gap-2 items-end",
+                                isSent ? "justify-end" : "justify-start"
                               )}
                             >
-                              <p className="text-sm leading-relaxed break-words">
-                                {msg.content || ""}
-                              </p>
+                              {!isSent && (
+                                <Avatar
+                                  className={cn(
+                                    "h-7 w-7 flex-shrink-0",
+                                    !showAvatar && "opacity-0"
+                                  )}
+                                >
+                                  <AvatarImage
+                                    src={recipient.avatar || undefined}
+                                  />
+                                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                    {recipient.name?.charAt(0).toUpperCase() ||
+                                      "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
                               <div
                                 className={cn(
-                                  "flex items-center gap-1 mt-1 text-xs",
+                                  "max-w-[75%] sm:max-w-[65%] rounded-2xl px-4 py-2.5 shadow-sm",
                                   isSent
-                                    ? "text-primary-foreground/70 justify-end"
-                                    : "text-muted-foreground"
+                                    ? "bg-primary text-primary-foreground rounded-br-md"
+                                    : "bg-card border rounded-bl-md",
+                                  !isLastInGroup && isSent && "rounded-br-2xl",
+                                  !isLastInGroup && !isSent && "rounded-bl-2xl"
                                 )}
                               >
-                                <span>
-                                  {msg.createdAt
-                                    ? new Date(
-                                        msg.createdAt
-                                      ).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })
-                                    : ""}
-                                </span>
-                                {isSent && msg.status && (
-                                  <span className="ml-1">
-                                    {msg.status === "SENT" && (
-                                      <Check className="h-3 w-3" />
-                                    )}
-                                    {msg.status === "DELIVERED" && (
-                                      <CheckCheck className="h-3 w-3" />
-                                    )}
-                                    {msg.status === "READ" && (
-                                      <CheckCheck className="h-3 w-3 text-blue-400" />
-                                    )}
+                                <p className="text-sm leading-relaxed break-words">
+                                  {msg.content || ""}
+                                </p>
+                                <div
+                                  className={cn(
+                                    "flex items-center gap-1 mt-1 text-xs",
+                                    isSent
+                                      ? "text-primary-foreground/70 justify-end"
+                                      : "text-muted-foreground"
+                                  )}
+                                >
+                                  <span>
+                                    {msg.createdAt
+                                      ? new Date(
+                                          msg.createdAt
+                                        ).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })
+                                      : ""}
                                   </span>
-                                )}
+                                  {isSent && msg.status && (
+                                    <span className="ml-1">
+                                      {msg.status === "SENT" && (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                      {msg.status === "DELIVERED" && (
+                                        <CheckCheck className="h-3 w-3" />
+                                      )}
+                                      {msg.status === "READ" && (
+                                        <CheckCheck className="h-3 w-3 text-blue-400" />
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {isSent && (
+                                <Avatar
+                                  className={cn(
+                                    "h-7 w-7 flex-shrink-0",
+                                    !showAvatar && "opacity-0"
+                                  )}
+                                >
+                                  <AvatarImage
+                                    src={currentUser.avatar || undefined}
+                                  />
+                                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                    {currentUser.name
+                                      ?.charAt(0)
+                                      .toUpperCase() || "U"}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {isTyping && (
+                          <div className="flex gap-2 items-end">
+                            <Avatar className="h-7 w-7 flex-shrink-0">
+                              <AvatarImage
+                                src={recipient.avatar || undefined}
+                              />
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {recipient.name?.charAt(0).toUpperCase() || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                              <div className="flex gap-1">
+                                <span
+                                  className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                                  style={{ animationDelay: "0ms" }}
+                                ></span>
+                                <span
+                                  className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                                  style={{ animationDelay: "150ms" }}
+                                ></span>
+                                <span
+                                  className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                                  style={{ animationDelay: "300ms" }}
+                                ></span>
                               </div>
                             </div>
-                            {isSent && (
-                              <Avatar
-                                className={cn(
-                                  "h-7 w-7 flex-shrink-0",
-                                  !showAvatar && "opacity-0"
-                                )}
-                              >
-                                <AvatarImage
-                                  src={currentUser.avatar || undefined}
-                                />
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                  {currentUser.name?.charAt(0).toUpperCase() ||
-                                    "U"}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
                           </div>
-                        );
-                      })}
+                        )}
 
-                      {isTyping && (
-                        <div className="flex gap-2 items-end">
-                          <Avatar className="h-7 w-7 flex-shrink-0">
-                            <AvatarImage src={recipient.avatar || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                              {recipient.name?.charAt(0).toUpperCase() || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
-                            <div className="flex gap-1">
-                              <span
-                                className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
-                                style={{ animationDelay: "0ms" }}
-                              ></span>
-                              <span
-                                className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
-                                style={{ animationDelay: "150ms" }}
-                              ></span>
-                              <span
-                                className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
-                                style={{ animationDelay: "300ms" }}
-                              ></span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div ref={messagesEndRef} />
+                        <div ref={messagesEndRef} />
+                      </div>
                     </div>
                   </div>
-                </div>
 
                 {/* Message Input - Fixed at bottom */}
                 <div className="border-t bg-card/30 backdrop-blur-sm flex-shrink-0 z-10">

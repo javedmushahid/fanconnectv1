@@ -3,7 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Slider } from '@/components/ui/slider'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   X,
   Camera,
@@ -14,12 +20,14 @@ import {
   Type,
   Smile,
   Download,
-  ChevronDown,
   Send,
   Settings,
+  Loader2,
+  ChevronDown,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { storiesAPI } from '@/lib/api/endpoints/stories'
 
 const STICKERS = ['😀', '😍', '🔥', '💪', '✨', '🎉', '❤️', '👍', '🌟', '💯', '🎨', '🎵', '😂', '��', '🥰', '😊']
 
@@ -64,6 +72,10 @@ export default function StoryCreator() {
   // States
   const [mode, setMode] = useState<'select' | 'camera' | 'preview'>('select')
   const [media, setMedia] = useState<string | null>(null)
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [mediaType, setMediaType] = useState<'IMAGE' | 'VIDEO'>('IMAGE')
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'FOLLOWERS' | 'SUBSCRIBERS' | 'CLOSE_FRIENDS'>('PUBLIC')
+  const [isSharing, setIsSharing] = useState(false)
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const [flashEnabled, setFlashEnabled] = useState(false)
@@ -128,6 +140,11 @@ export default function StoryCreator() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
         const imageData = canvas.toDataURL('image/jpeg', 0.95)
         setMedia(imageData)
+        setMediaType('IMAGE')
+        // Convert data URL to File for upload
+        canvas.toBlob((blob) => {
+          if (blob) setMediaFile(new File([blob], 'story.jpg', { type: 'image/jpeg' }))
+        }, 'image/jpeg', 0.95)
         stopCamera()
         setMode('preview')
       }
@@ -144,6 +161,9 @@ export default function StoryCreator() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    setMediaFile(file)
+    setMediaType(file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE')
 
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -206,8 +226,20 @@ export default function StoryCreator() {
 
   // Share
   const handleShare = async () => {
-    toast.success('Story shared!')
-    router.push('/stories')
+    if (!mediaFile) {
+      toast.error('No media selected')
+      return
+    }
+    setIsSharing(true)
+    try {
+      await storiesAPI.createStory(mediaFile, mediaType, visibility)
+      toast.success('Story shared!')
+      router.push('/stories')
+    } catch {
+      toast.error('Failed to share story')
+    } finally {
+      setIsSharing(false)
+    }
   }
 
   // Cleanup
@@ -548,18 +580,34 @@ export default function StoryCreator() {
       </div>
 
       {/* Bottom Bar - Fixed */}
-      <div className="bg-black/90 backdrop-blur-xl border-t border-white/10 p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white">
-          <ChevronDown className="h-5 w-5" />
-          <span className="text-sm font-medium">Your Story</span>
-        </div>
+      <div className="bg-black/90 backdrop-blur-xl border-t border-white/10 p-4 flex items-center justify-between gap-3">
+        <Select
+          value={visibility}
+          onValueChange={(v) => setVisibility(v as typeof visibility)}
+        >
+          <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white text-sm">
+            <ChevronDown className="h-4 w-4 mr-1 opacity-60" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PUBLIC">Everyone</SelectItem>
+            <SelectItem value="FOLLOWERS">Followers</SelectItem>
+            <SelectItem value="SUBSCRIBERS">Subscribers</SelectItem>
+            <SelectItem value="CLOSE_FRIENDS">Close Friends</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Button
           onClick={handleShare}
+          disabled={isSharing}
           className="bg-white text-black hover:bg-white/90 px-6 gap-2"
         >
-          <Send className="h-4 w-4" />
-          Share
+          {isSharing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          {isSharing ? 'Sharing...' : 'Share'}
         </Button>
       </div>
 
